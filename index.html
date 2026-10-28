@@ -97,11 +97,11 @@ th.c{text-align:left;padding-left:16px;border-bottom:3px solid #e8b830;letter-sp
 </section>
 
 <section id="app" class="hide">
- <header><img id="hl" width="44" height="44" alt="BNPP-RI"><div class="ht"><small>BADAN NASIONAL PENGELOLA PERBATASN DAN DAERAH TERPENCIL-RI</small><h1>Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</h1></div>
+ <header><img id="hl" width="44" height="44" alt="BNPP-RI"><div class="ht"><small>BNPP-RI</small><h1>Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</h1></div>
   <div class="who"><div id="wh"></div><span id="sync"></span></div>
   <div class="hb"><button class="hbtn" id="bl" onclick="logUI()">📋 Log Aktivitas</button><button class="hbtn" id="bt" onclick="tokUI()">🔑 Token GitHub</button><button class="hbtn" onclick="logout()">Keluar</button></div></header>
  <main>
-  <div class="welcome"><div class="wl"><span class="eb">BADAN NASIONAL PENGELOLA PERBATASN DAN DAERAH TERPENCIL-RI</span><h2 id="wt">Selamat datang</h2><p>Pantau dan lengkapi data kebutuhan sarana prasarana layanan dasar di kawasan perbatasan.</p></div><div class="ring" id="rg" style="--p:0"><div><b id="pp">0%</b><small>terisi</small></div></div><div class="wr"><b id="pn">0</b><span>kecamatan sudah diisi</span></div></div>
+  <div class="welcome"><div class="wl"><span class="eb">BNPP-RI</span><h2 id="wt">Selamat datang</h2><p>Pantau dan lengkapi data kebutuhan sarana prasarana layanan dasar di kawasan perbatasan.</p></div><div class="ring" id="rg" style="--p:0"><div><b id="pp">0%</b><small>terisi</small></div></div><div class="wr"><b id="pn">0</b><span>kecamatan sudah diisi</span></div></div>
   <div class="stats" id="stats"></div>
   <div class="bar">
    <select id="fp" onchange="fillKab();render()"></select><select id="fk" onchange="render()"></select>
@@ -157,7 +157,7 @@ let DB,ME,TOKEN='',sha=null;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const hash=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,'0')).join('');
 
-const idb=(m,v)=>new Promise((ok,no)=>{const q=indexedDB.open('simptr',1);q.onupgradeneeded=()=>q.result.createObjectStore('s');q.onsuccess=()=>{const t=q.result.transaction('s',m=='get'?'readonly':'readwrite').objectStore('s'),r=m=='get'?t.get('db'):t.put(v,'db');r.onsuccess=()=>ok(r.result);r.onerror=no};q.onerror=no});
+const idb=(m,v)=>new Promise((ok,no)=>{const N='ksp_sarpras_perbatasan',q=indexedDB.open(N,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains('s'))q.result.createObjectStore('s')};q.onerror=no;q.onsuccess=()=>{try{const d=q.result;if(!d.objectStoreNames.contains('s')){d.close();const x=indexedDB.deleteDatabase(N);x.onsuccess=x.onerror=()=>idb(m,v).then(ok,no);return}const t=d.transaction('s',m=='get'?'readonly':'readwrite').objectStore('s'),r=m=='get'?t.get('db'):t.put(v,'db');r.onsuccess=()=>ok(r.result);r.onerror=no}catch(e){no(e)}}});
 async function loadDB(){let L=null,R=null;
  try{L=await idb('get')}catch(e){}
  try{const r=await fetch(CFG.path+'?t='+Date.now(),{cache:'no-store'});if(r.ok)R=await r.json()}catch(e){}
@@ -177,7 +177,7 @@ async function push(manual){
  if(!TOKEN){if(manual)alert('Masukkan Token GitHub saat login (khusus Admin/Owner) untuk sinkronisasi.');$('sync').textContent='Tersimpan lokal (belum sinkron GitHub)';return}
  try{$('sync').textContent='Menyinkronkan...';
   for(const k in DB.lokasi)for(const r of DB.lokasi[k])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';if(!await ghPut(p,f.src.split(',')[1],'Foto '+f.id))throw 0;f.src=p}
-  const ok=await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data SIM-PTR oleh '+ME.u);
+  const ok=await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data oleh '+ME.u);
   if(ok){DB._dirty=false;DB._pend=[];DB._usr=false;idb('put',DB)}
   $('sync').textContent=ok?'Tersinkron ke GitHub ✓':'Gagal sinkron ('+'cek token/repo)';
  }catch(e){$('sync').textContent='Gagal sinkron (cek token/jaringan)'}
@@ -193,10 +193,10 @@ async function doLogin(){await ready;
  const u=$('lu').value.trim().toLowerCase(),h=await hash($('lp').value);
  const a=DB.users.find(x=>(x.u.toLowerCase()==u||x.u.split('@')[0].toLowerCase()==u)&&x.h==h);
  if(!a){ME=null;log('Login gagal','Percobaan dengan nama pengguna: '+u.slice(0,60),false,u||'-');$('le').textContent='Nama pengguna atau kata sandi salah.';return}
- sessionStorage.setItem('sp_sess',JSON.stringify({u:a.u,h:a.h}));enter(a,true);
+ sessionStorage.setItem('ksp_sess',JSON.stringify({u:a.u,h:a.h}));enter(a,true);
 }
 function enter(a,fresh){ME=a;$('wt').textContent='Halo, '+a.nama+' 👋';$('le').textContent='';const adm=a.role!='pic';
- TOKEN=adm?(sessionStorage.getItem('sp_tk')||localStorage.getItem('sp_tok')||''):'';
+ TOKEN=adm?(sessionStorage.getItem('ksp_tk')||localStorage.getItem('ksp_tok')||''):'';
  $('login').classList.add('hide');$('app').classList.remove('hide');
  $('wh').textContent=a.nama+' ('+({owner:'Owner',admin:'Admin',pic:'User/PIC'})[a.role]+')';
  ['bu','bg','bl','bt'].forEach(i=>$(i).classList.toggle('hide',!adm));
@@ -204,7 +204,7 @@ function enter(a,fresh){ME=a;$('wt').textContent='Halo, '+a.nama+' 👋';$('le')
  const ks=mine();$('fp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(ks.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
  fillKab();render();if(fresh){log('Login');if(adm&&!TOKEN)tokUI()}
 }
-function logout(){log('Logout');ME=null;TOKEN='';sessionStorage.removeItem('sp_sess');sessionStorage.removeItem('sp_tk');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
+function logout(){log('Logout');ME=null;TOKEN='';sessionStorage.removeItem('ksp_sess');sessionStorage.removeItem('ksp_tk');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
 function tokUI(){
  $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:440px"><h3 style="margin-top:0">Token GitHub</h3><small>Diperlukan untuk menyimpan data dan foto ke repo GitHub. ${TOKEN?'Token aktif.':'Belum ada token.'}</small>
  <label>Token</label><input id="tk" type="password" placeholder="github_pat_..." autocomplete="off">
@@ -212,7 +212,7 @@ function tokUI(){
  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">${TOKEN?'<button class="btn red" onclick="setTok(\'\')">Hapus token</button>':''}<button class="btn sec" onclick="closeM()">Lewati</button><button class="btn" onclick="setTok($(\'tk\').value.trim())">Simpan</button></div></div></div>`;
 }
 function setTok(v){
- TOKEN=v;v?sessionStorage.setItem('sp_tk',v):sessionStorage.removeItem('sp_tk');if(v&&$('tr')&&$('tr').checked)localStorage.setItem('sp_tok',v);else localStorage.removeItem('sp_tok');
+ TOKEN=v;v?sessionStorage.setItem('ksp_tk',v):sessionStorage.removeItem('ksp_tk');if(v&&$('tr')&&$('tr').checked)localStorage.setItem('ksp_tok',v);else localStorage.removeItem('ksp_tok');
  closeM();$('sync').textContent=v?'Token GitHub aktif':'Token GitHub dihapus';
  log(v?'Token GitHub diatur':'Token GitHub dihapus','',!!v);
 }
@@ -298,6 +298,6 @@ async function addU(){
 }
 function delU(i){if(confirm('Hapus akun ini?')){const x=DB.users.splice(i,1)[0];DB._usr=true;log('Hapus akun',x.u,true);usersUI()}}
 
-const ready=loadDB().catch(()=>{DB=JSON.parse(JSON.stringify(SEED))}).then(()=>{DB.lokasi=DB.lokasi||{};DB.log=DB.log||[];if(!DB.users||!DB.users.length)DB.users=JSON.parse(JSON.stringify(SEED.users));try{pubInit()}catch(e){console.error(e)};try{const q=JSON.parse(sessionStorage.getItem('sp_sess')||'null'),a=q&&DB.users.find(x=>x.u==q.u&&x.h==q.h);if(a)enter(a,false)}catch(e){}});
+const ready=loadDB().catch(()=>{DB=JSON.parse(JSON.stringify(SEED))}).then(()=>{DB.lokasi=DB.lokasi||{};DB.log=DB.log||[];if(!DB.users||!DB.users.length)DB.users=JSON.parse(JSON.stringify(SEED.users));try{pubInit()}catch(e){console.error(e)};try{const q=JSON.parse(sessionStorage.getItem('ksp_sess')||'null'),a=q&&DB.users.find(x=>x.u==q.u&&x.h==q.h);if(a)enter(a,false)}catch(e){}});
 $('lp').addEventListener('keydown',e=>e.key=='Enter'&&doLogin());
 </script></body></html>
