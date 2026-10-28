@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIM-PTR | Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--tx:#0f1f3d;--mut:#5b6b85;--line:#dde4ee;--pri:#0b5ccf;--inp:#e8f0fd}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1626;--card:#142036;--tx:#e8eefb;--mut:#9fb0cc;--line:#26354f;--pri:#4b8df0;--inp:#1b2c4a}}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+.hide{display:none!important}
+#login{display:flex;min-height:100vh}
+.hero{flex:1;background:linear-gradient(160deg,#0f5195,#1b8ab9 55%,#1fb5da);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:48px}
+.hero h1{font-size:34px;margin:18px 0 12px;max-width:640px}.hero p{max-width:520px;opacity:.95}
+.hero button{align-self:flex-start;margin-top:20px;background:none;border:1px solid #fff;color:#fff;border-radius:20px;padding:6px 16px;cursor:pointer}
+.formside{flex:1;background:var(--card);display:flex;align-items:center;justify-content:center;padding:32px}
+.fbox{width:100%;max-width:380px}.fbox h2{margin:0 0 4px;font-size:24px}.fbox small{color:var(--mut)}
+label{display:block;margin:14px 0 4px;font-size:13px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--inp);color:var(--tx);font:inherit}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:600}
+.btn.sec{background:none;color:var(--pri);border:1px solid var(--pri)}.btn.sm{padding:5px 10px;font-weight:500}.btn.red{background:#c0392b}
+.err{color:#c0392b;margin-top:10px;min-height:18px}
+header{background:linear-gradient(90deg,#0f5195,#1b8ab9);color:#fff;padding:12px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0;flex:1}header .who{font-size:13px;text-align:right}
+main{padding:20px 24px;max-width:1400px;margin:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}.stat b{font-size:26px;display:block}.stat span{color:var(--mut);font-size:12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}.bar>*{width:auto;flex:1;min-width:150px}.bar .btn{flex:0 0 auto}
+.tw{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:68vh}
+table{border-collapse:collapse;width:100%}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{position:sticky;top:0;background:var(--card);z-index:1}
+.tag{padding:2px 8px;border-radius:10px;font-size:11px;background:var(--inp)}.ok{background:#d4f4dd;color:#146c2e}.no{background:#fde8d4;color:#9a4b0a}
+.modal{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:16px;z-index:9}
+.mb{background:var(--card);border-radius:14px;padding:20px;width:100%;max-width:980px;max-height:92vh;overflow:auto}
+.row{display:grid;grid-template-columns:2fr 1.4fr 2fr .8fr .8fr 1.4fr auto;gap:6px;margin-bottom:6px}
+.foot{color:var(--mut);font-size:12px;margin-top:10px}
+@media(max-width:800px){.hero{display:none}.row{grid-template-columns:1fr 1fr}}
+.grid8{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.card{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+textarea{resize:vertical}td.n{white-space:normal;min-width:130px;max-width:220px;font-size:12px}th.c{text-align:center}
+.th{display:inline-block;position:relative;margin:4px 4px 6px 0}.th img{height:72px;border-radius:6px;display:block}.th button{position:absolute;top:2px;right:2px}
+thead tr:nth-child(2) th{top:37px}@media(max-width:800px){.grid8{grid-template-columns:1fr 1fr}}
+</style></head><body>
+
+<section id="login">
+ <div class="hero">
+  <svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="#e8b830"/><circle cx="48" cy="48" r="38" fill="#fff"/><path d="M10 48a38 38 0 0 1 76 0z" fill="#d62b2b"/><circle cx="48" cy="48" r="22" fill="#1b5fb0"/><text x="48" y="80" font-size="10" text-anchor="middle" fill="#0f1f3d" font-weight="700">BNPP-RI</text></svg>
+  <h1>Pantau Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</h1>
+  <p>SIM-PTR menghimpun data kebutuhan sarana prasarana layanan dasar di 299 kecamatan lokasi prioritas pengelolaan batas wilayah negara dan kawasan perbatasan 2025-2029, diisi langsung oleh Camat/PIC daerah.</p>
+  <button onclick="document.getElementById('lu').focus()">Akses Dashboard</button>
+ </div>
+ <div class="formside"><div class="fbox">
+  <h2>Masuk ke Akun Anda</h2><small>Login untuk melanjutkan pengisian data di area kerja Anda.</small>
+  <label>Nama pengguna</label><input id="lu" autocomplete="username" placeholder="owner@ptr.id">
+  <label>Kata sandi</label><input id="lp" type="password" autocomplete="current-password">
+  <label>Token GitHub <small>(khusus Admin/Owner, opsional)</small></label><input id="lt" type="password" placeholder="ghp_...">
+  <label style="display:flex;gap:6px;align-items:center"><input id="lr" type="checkbox" style="width:auto"> Ingat token di perangkat ini</label>
+  <button class="btn" style="width:100%;margin-top:14px" onclick="doLogin()">Masuk</button>
+  <div class="err" id="le"></div>
+  <small>Butuh akses akun baru? Hubungi administrator.</small>
+ </div></div>
+</section>
+
+<section id="app" class="hide">
+ <header><h1>Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</h1>
+  <div class="who"><div id="wh"></div><span id="sync"></span></div>
+  <button class="btn sec sm" style="color:#fff;border-color:#fff" onclick="logout()">Keluar</button></header>
+ <main>
+  <div class="stats" id="stats"></div>
+  <div class="bar">
+   <select id="fp" onchange="fillKab();render()"></select><select id="fk" onchange="render()"></select>
+   <select id="fs" onchange="render()"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select>
+   <input id="fq" placeholder="Cari kecamatan..." oninput="render()">
+   <button class="btn sm" onclick="exXlsx()">Unduh Excel</button><button class="btn sm" onclick="exPdf()">Unduh PDF</button>
+   <button class="btn sec sm" id="bu" onclick="usersUI()">Kelola Akun</button>
+   <button class="btn sec sm" id="bg" onclick="push(true)">Sinkron GitHub</button>
+  </div>
+  <div class="tw"><table><thead><tr><th rowspan="2">No</th><th rowspan="2">Provinsi</th><th rowspan="2">Kabupaten/Kota</th><th rowspan="2">Nama Kecamatan</th><th rowspan="2">Lokasi (Pulau)</th><th colspan="8" class="c">KEBUTUHAN SARANA PRASARANA DASAR</th><th rowspan="2">Foto</th><th rowspan="2">Status</th><th rowspan="2"></th></tr><tr><th>Akses Jalan</th><th>Air Bersih / Air Minum</th><th>Jembatan</th><th>Telekomunikasi</th><th>Fasilitas Pendidikan</th><th>Fasilitas Kesehatan</th><th>Listrik</th><th>Kebutuhan Lainnya</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="foot" id="cnt"></div>
+ </main>
+</section>
+<div id="md"></div>
+
+<script>
+/* ===== KONFIGURASI GITHUB (ganti sesuai repo Anda) ===== */
+const CFG={owner:'GANTI_USERNAME',repo:'GANTI_REPO',branch:'main',path:'data.json'};
+
+/* ===== DATA: Kepka BNPP 35.04-705 Tahun 2025 (299 kecamatan) =====
+   Kode: huruf1 L=Laut/D=Darat, huruf2 P=PKSN/K=KPP */
+const RAW={
+"Aceh":{"Sabang":"LP:Sukakarya;Sukajaya;Sukamakmue","Aceh Besar":"LK:Mesjid Raya","Pidie":"LK:Batee;Kota Sigli;Simpang Tiga","Pidie Jaya":"LK:Panteraja;Meurah Dua;Ulim","Bireuen":"LK:Kuala","Aceh Utara":"LK:Dewantara;Samudera;Lapang;Baktiya Barat","Lhokseumawe":"LK:Muara Satu;Muara Dua;Banda Sakti;Blang Mangat","Aceh Timur":"LK:Madat;Nurussalam;Darul Aman;Idi Rayeuk;Idi Timur;Peudawa;Peureulak Barat;Peureulak;Peureulak Timur;Rantau Selamat;Birem Bayeun","Langsa":"LK:Langsa Barat"},
+"Sumatera Utara":{"Langkat":"LK:Pematang Jaya;Pangkalan Susu;Brandan Barat;Gebang;Tanjung Pura","Serdang Bedagai":"LK:Tanjung Beringin;Bandar Khalifah","Batu Bara":"LK:Sei Suka","Asahan":"LK:Silau Laut;Sei Kepayang Timur"},
+"Riau":{"Bengkalis":"LP:Bengkalis;Bantan;Rupat;Rupat Utara","Rokan Hilir":"LK:Pasir Limau Kapas;Bangko;Sinaboi","Kepulauan Meranti":"LK:Rangsang Barat;Rangsang Pesisir;Rangsang"},
+"Kepulauan Riau":{"Natuna":"LP:Bunguran Barat;Serasan;Subi;Pulau Laut;Pulau Tiga;Bunguran Selatan;Serasan Timur;Bunguran Timur;Bunguran Utara;Bunguran Timur Laut;Pulau Tiga Barat;Pulau Pajang","Karimun":"LK:Meral Barat;Tebing;Karimun","Batam":"LK:Belakang Padang","Bintan":"LK:Bintan Utara;Telok Sebong;Gunung Kijang;Bintan Pesisir","Kepulauan Anambas":"LK:Jemaja Barat;Jemaja;Siantan Selatan;Siantan Utara;Kute Siantan"},
+"Nusa Tenggara Timur":{"Timor Tengah Utara":"DP:Insana Utara;Bikomi Nilulat;Bikomi Utara;Kota Kefamenanu;Bikomi Selatan;Bikomi Tengah/DK:Biboki Moenleu;Naibenu;Mutis;Musi","Alor":"LP:Teluk Mutiara;Alor Barat Daya;Alor Selatan;Alor Timur;Mataru;Pureman;Pantar Tengah/LK:Pantar Timur","Belu":"DP:Tasifeto Timur;Raihat;Kota Atambua;Atambua Barat;Atambua Selatan;Kakuluk Mesak/DK:Lasiolat;Lamaknen Selatan;Tasifeto Barat;Nanaet Duabesi","Malaka":"DK:Kobalima Timur","Timor Tengah Selatan":"LK:Nunkolo;Kot Olin;Kualin","Kupang":"DK:Amfoang Timur/LK:Kupang Barat;Nekamese;Amarasi Barat;Amarasi Selatan;Amarasi Timur","Rote Ndao":"LK:Landu Leko;Rote Timur;Pantai Baru;Rote Selatan;Lobalain;Rote Barat Daya;Rote Barat;Ndao Nuse","Sabu Raijua":"LK:Sabu Timur;Sabu Liae;Hawu Mehara;Raijua","Sumba Timur":"LK:Ngadu Ngala;Karera;Pinu Pahar;Tabundung;Katala Hamu Lingu","Sumba Barat":"LK:Lamboya;Laboya Barat","Sumba Barat Daya":"LK:Kodi Balaghar"},
+"Kalimantan Barat":{"Sambas":"DP:Sajingan Besar;Paloh","Sanggau":"DP:Sekayam;Entikong","Bengkayang":"DP:Jagoi Babang/DK:Siding","Sintang":"DK:Ketungau Hulu","Kapuas Hulu":"DP:Putussibau Utara;Putussibau Selatan;Badau/DK:Puring Kencana"},
+"Kalimantan Timur":{"Mahakam Ulu":"DK:Long Apari;Long Pahangai","Berau":"LK:Maratua"},
+"Kalimantan Utara":{"Malinau":"DP:Kayan Hulu;Kayan Selatan/DK:Kayan Hilir;Bahau Hulu","Nunukan":"LP:Nunukan;Nunukan Selatan;Sebatik Timur;Sebatik/DP:Sebatik Utara;Sebatik Barat;Lumbis Ogong;Lumbis Pansiangan;Lumbis Hulu/DK:Krayan Selatan;Krayan;Tulin Onsoi;Sei Menggaris;Sebatik Tengah;Krayan Tengah;Krayan Timur;Krayan Barat","Tana Tidung":"LK:Tana Lia"},
+"Sulawesi Utara":{"Kepulauan Talaud":"LP:Melonguane;Miangas/LK:Damau;Pulutan;Nanusa","Kepulauan Sangihe":"LP:Kepulauan Marore;Tahuna;Tahuna Timur;Tahuna Barat/LK:Kendahe","Kepulauan Siau Tagulandang Biaro":"LK:Siau Barat;Siau Barat Utara","Minahasa Utara":"LK:Likupang Barat;Wori","Minahasa Selatan":"LK:Tatapaan;Tenga;Sinonsayang","Bolaang Mongondow":"LK:Bolaang Timur","Bolaang Mongondow Utara":"LK:Bolangitang Barat;Pinogaluman"},
+"Sulawesi Tengah":{"Buol":"LK:Paleleh Barat;Gadung;Bokat;Biau;Karamat","Toli-Toli":"LK:Toli-Toli;Dako Pemean;Dampal Utara"},
+"Gorontalo":{"Gorontalo Utara":"LK:Gentuma Raya;Tomolito;Ponelo Kepulauan;Anggrek;Monano;Sumalata Timur;Biau;Tolinggula"},
+"Maluku":{"Maluku Barat Daya":"LP:Moa;Kepulauan Luang Sermata;Babar Barat;Wetar Selatan;Kisar Selatan;Pulau Leti;Pulau Masela;Pulau Lakor;Wetar Utara;Wetar Barat;Wetar Timur;Kisar Utara;Babar Timur;Daweloor Dawera;Pulau Wetang","Kepulauan Aru":"LK:Aru Tengah Timur;Aru Tengah Selatan;Aru Selatan Timur;Sir-Sir","Tual":"LK:Pulau Dullah Selatan","Kepulauan Tanimbar":"LP:Tanimbar Selatan;Tanimbar Utara/LK:Selaru;Kormomolin","Maluku Tenggara":"LK:Kei Besar Selatan;Kei Besar Utara Timur;Kei Besar Selatan Barat;Kei Besar"},
+"Maluku Utara":{"Pulau Morotai":"LP:Morotai Selatan/LK:Morotai Utara","Halmahera Timur":"LK:Maba Utara","Halmahera Tengah":"LK:Patani Utara"},
+"Papua Barat Daya":{"Raja Ampat":"LK:Ayau;Kepulauan Ayau","Tambrauw":"LK:Kwoor;Abun"},
+"Papua":{"Jayapura":"LP:Jayapura Utara;Jayapura Selatan/DP:Muara Tami;Abepura","Keerom":"DK:Towe;Waris","Sarmi":"LK:Pantai Timur;Sarmi Timur;Sarmi Selatan;Sarmi Kota;Pantai Barat","Mamberamo Raya":"LK:Sawai","Biak Numfor":"LP:Biak Kota/LK:Aimando Padaido;Padaido;Oridek;Biak Utara;Yawosi;Warsa;Bondifuar","Supiori":"LK:Supiori Utara;Supiori Barat;Kepulauan Aruri"},
+"Papua Tengah":{"Mimika":"LK:Mimika Barat;Mimika Timur;Mimika Timur Jauh;Jita"},
+"Papua Pegunungan":{"Pegunungan Bintang":"DK:Iwur;Tarap;Oksibil;Oksamol;Kiwirok Timur;Batom;Mofinop;Murkim"},
+"Papua Selatan":{"Asmat":"LK:Agats;Fayit","Mappi":"LK:Minyamur","Merauke":"DP:Ulilin;Sota;Elikobel/LP:Merauke;Kimaam;Semangga/DK:Ilwayab;Tubang;Malind;Naukenjerai/LK:Tabonji;Waan;Okaba","Boven Digoel":"DP:Ninati;Mandobo;Mindiptana/DK:Kombut;Waropko;Ambatkwi"}
+};
+const KEC=[];let n=0;
+for(const p in RAW)for(const k in RAW[p])RAW[p][k].split('/').forEach(g=>{const[c,l]=g.split(':');l.split(';').forEach(s=>KEC.push({id:++n,prov:p,kab:k,kec:s,dl:c[0]=='L'?'Laut':'Darat',pk:c[1]=='P'?'PKSN':'KPP'}))});
+
+/* ===== AKUN AWAL (kata sandi disimpan sebagai hash SHA-256; ganti setelah login pertama) =====
+   owner@ptr.id / Owner#2026 | admin@ptr.id / Admin#2026 | pic@ptr.id / Pic#2026 (contoh: kecamatan no. 1-3) */
+const SEED={users:[
+{u:'owner@ptr.id',nama:'Owner',role:'owner',h:'386e4f8f7f73b2cd2b5f1102b6b16ac7e9ef0b92c0d270c71bf089ef81568ca6',kec:[]},
+{u:'admin@ptr.id',nama:'Administrator',role:'admin',h:'b5af2beb9b7fd5aa4eb21b61925bd3856793e54e0a39052fbcfaf5b477fd07f3',kec:[]},
+{u:'pic@ptr.id',nama:'PIC Contoh (Sabang)',role:'pic',h:'709b38cc2bd8a93eae77d81b1b9c8703a094a36568f7347228cf1bd66b9de9c9',kec:[1,2,3]}],lokasi:{}};
+const JENIS=['Pendidikan','Kesehatan','Air Bersih & Sanitasi','Listrik/Energi','Telekomunikasi','Transportasi/Jalan','Pelabuhan/Dermaga','Permukiman','Lainnya'];
+let DB,ME,TOKEN='',sha=null;
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hash=async s=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+
+const idb=(m,v)=>new Promise((ok,no)=>{const q=indexedDB.open('simptr',1);q.onupgradeneeded=()=>q.result.createObjectStore('s');q.onsuccess=()=>{const t=q.result.transaction('s',m=='get'?'readonly':'readwrite').objectStore('s'),r=m=='get'?t.get('db'):t.put(v,'db');r.onsuccess=()=>ok(r.result);r.onerror=no};q.onerror=no});
+async function loadDB(){let L=null,R=null;
+ try{L=await idb('get')}catch(e){}
+ try{const r=await fetch(CFG.path+'?t='+Date.now(),{cache:'no-store'});if(r.ok)R=await r.json()}catch(e){}
+ DB=(L&&L._dirty)?L:(R||L||JSON.parse(JSON.stringify(SEED)));
+}
+async function ghPut(p,b64,msg){
+ const u=`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${p}`,H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
+ const g=await fetch(u+'?ref='+CFG.branch,{headers:H}),sh=g.ok?(await g.json()).sha:undefined;
+ return (await fetch(u,{method:'PUT',headers:H,body:JSON.stringify({message:msg,branch:CFG.branch,content:b64,sha:sh})})).ok;
+}
+async function push(manual){
+ if(!TOKEN){if(manual)alert('Masukkan Token GitHub saat login (khusus Admin/Owner) untuk sinkronisasi.');$('sync').textContent='Tersimpan lokal (belum sinkron GitHub)';return}
+ try{$('sync').textContent='Menyinkronkan...';
+  for(const k in DB.lokasi)for(const r of DB.lokasi[k])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';if(!await ghPut(p,f.src.split(',')[1],'Foto '+f.id))throw 0;f.src=p}
+  const ok=await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data SIM-PTR oleh '+ME.u);
+  if(ok){DB._dirty=false;idb('put',DB)}
+  $('sync').textContent=ok?'Tersinkron ke GitHub ✓':'Gagal sinkron ('+'cek token/repo)';
+ }catch(e){$('sync').textContent='Gagal sinkron (cek token/jaringan)'}
+}
+function commit(){DB._dirty=true;idb('put',DB).catch(()=>{});push(false)}
+
+async function doLogin(){await ready;
+ const u=$('lu').value.trim().toLowerCase(),h=await hash($('lp').value);
+ const a=DB.users.find(x=>x.u.toLowerCase()==u&&x.h==h);
+ if(!a){$('le').textContent='Nama pengguna atau kata sandi salah.';return}
+ ME=a;TOKEN=a.role=='pic'?'':($('lt').value.trim()||localStorage.getItem('sp_tok')||'');
+ if(TOKEN&&$('lr').checked)localStorage.setItem('sp_tok',TOKEN);
+ $('login').classList.add('hide');$('app').classList.remove('hide');
+ $('wh').textContent=a.nama+' ('+({owner:'Owner',admin:'Admin',pic:'User/PIC'})[a.role]+')';
+ $('bu').classList.toggle('hide',a.role=='pic');$('bg').classList.toggle('hide',a.role=='pic');
+ $('sync').textContent=TOKEN?'Token GitHub aktif':'';
+ const ks=mine();$('fp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(ks.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
+ fillKab();render();
+}
+function logout(){ME=null;TOKEN='';$('lp').value='';$('lt').value='';$('app').classList.add('hide');$('login').classList.remove('hide')}
+const mine=()=>ME.role=='pic'?KEC.filter(k=>ME.kec.includes(k.id)):KEC;
+function fillKab(){const p=$('fp').value;$('fk').innerHTML='<option value="">Semua kabupaten/kota</option>'+[...new Set(mine().filter(k=>!p||k.prov==p).map(k=>k.kab))].map(x=>`<option>${esc(x)}</option>`).join('')}
+function filt(){const p=$('fp').value,k=$('fk').value,s=$('fs').value,q=$('fq').value.toLowerCase();
+ return mine().filter(x=>(!p||x.prov==p)&&(!k||x.kab==k)&&(s===''||((DB.lokasi[x.id]||[]).length>0)==(s=='1'))&&(!q||x.kec.toLowerCase().includes(q)))}
+const KB=[['jalan','Akses Jalan'],['air','Air Bersih / Air Minum'],['jembatan','Jembatan'],['telko','Telekomunikasi'],['pend','Fasilitas Pendidikan'],['kes','Fasilitas Kesehatan'],['listrik','Listrik'],['lain','Kebutuhan Lainnya']];
+const blank=()=>({pulau:'',jalan:'',air:'',jembatan:'',telko:'',pend:'',kes:'',listrik:'',lain:'',foto:[]});
+let W=[],EID=0;
+function render(){
+ const all=mine(),f=filt(),L=x=>DB.lokasi[x.id]||[],done=all.filter(x=>L(x).length).length,tl=all.reduce((a,x)=>a+L(x).length,0),tf=all.reduce((a,x)=>a+L(x).reduce((b,r)=>b+(r.foto||[]).length,0),0);
+ $('stats').innerHTML=[[all.length,'Kecamatan'],[done,'Sudah diisi'],[all.length-done,'Belum diisi'],[tl,'Total lokasi (pulau)'],[tf,'Foto data dukung'],[all.filter(x=>x.pk=='PKSN').length,'PKSN'],[all.filter(x=>x.pk=='KPP').length,'KPP']].map(a=>`<div class="stat"><b>${a[0]}</b><span>${a[1]}</span></div>`).join('');
+ let h='';f.forEach(x=>{const rs=L(x);(rs.length?rs:[null]).forEach((r,j)=>{
+  h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td>${esc(x.kec)}</td><td>${r?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td><td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td><td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td></tr>`})});
+ $('tb').innerHTML=h;$('cnt').textContent=`Menampilkan ${f.length} dari ${all.length} kecamatan`;
+}
+function gal(id,j){const r=DB.lokasi[id][j];$('md').innerHTML=`<div class="modal" onclick="closeM()"><div class="mb"><h3 style="margin-top:0">Foto data dukung — ${esc(KEC[id-1].kec)}, ${esc(r.pulau)}</h3>${r.foto.map(f=>`<img src="${esc(f.src)}" style="max-width:100%;border-radius:8px;margin:6px 0;display:block">`).join('')}</div></div>`}
+function edit(id){EID=id;W=JSON.parse(JSON.stringify(DB.lokasi[id]||[]));if(!W.length)W=[blank()];draw()}
+function draw(){
+ const sc=(document.querySelector('.mb')||{}).scrollTop||0,k=KEC[EID-1];
+ $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">${esc(k.kec)} — ${esc(k.kab)}, ${esc(k.prov)}</h3><small>${k.dl} · ${k.pk}. Isi lokasi (pulau) dan kebutuhan sarana prasarana dasar; tambahkan foto sebagai data dukung.</small><div style="margin-top:12px">
+ ${W.map((r,i)=>`<div class="card"><div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Lokasi (Pulau)" value="${esc(r.pulau)}" oninput="W[${i}].pulau=this.value"><button class="btn red sm" style="white-space:nowrap" onclick="W.splice(${i},1);draw()">Hapus lokasi</button></div>
+ <div class="grid8">${KB.map(b=>`<div><label style="margin:0 0 2px;font-size:12px">${b[1]}</label><textarea rows="2" oninput="W[${i}].${b[0]}=this.value">${esc(r[b[0]])}</textarea></div>`).join('')}</div>
+ <div style="margin-top:8px"><label>Foto data dukung (maks. 6)</label>${r.foto.map((f,j)=>`<span class="th"><img src="${esc(f.src)}"><button class="btn red sm" onclick="W[${i}].foto.splice(${j},1);draw()">✕</button></span>`).join('')}<input type="file" accept="image/*" multiple onchange="addPh(${i},this.files)"></div></div>`).join('')}</div>
+ <button class="btn sec sm" onclick="W.push(blank());draw()">+ Tambah lokasi (pulau)</button>
+ <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" onclick="closeM()">Batal</button><button class="btn" onclick="saveRows()">Simpan</button></div></div></div>`;
+ document.querySelector('.mb').scrollTop=sc;
+}
+function shrink(file){return new Promise(ok=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.7))};im.onerror=()=>ok(null);im.src=fr.result};fr.readAsDataURL(file)})}
+async function addPh(i,files){for(const f of [...files]){if(W[i].foto.length>=6){alert('Maksimal 6 foto per lokasi.');break}const s=await shrink(f);if(s)W[i].foto.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:f.name,src:s})}draw()}
+function saveRows(){
+ DB.lokasi[EID]=W.filter(r=>r.pulau.trim()||r.foto.length||KB.some(b=>(r[b[0]]||'').trim()));
+ closeM();commit();render();
+}
+const closeM=()=>$('md').innerHTML='';
+
+/* ===== Ekspor (kolom mengikuti template Excel) ===== */
+const H1=['No','Provinsi','Kabupaten/Kota','Nama Kecamatan','Lokasi (Pulau)'],SUB=KB.map(b=>b[1]);
+function flat(){const o=[];filt().forEach(k=>{const rs=DB.lokasi[k.id]||[];(rs.length?rs:[{}]).forEach(r=>o.push([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),(r.foto||[]).length||'']))});return o}
+function exXlsx(){
+ const ws=XLSX.utils.aoa_to_sheet([[...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Jumlah Foto'],[...Array(5).fill(''),...SUB,''],...flat()]);
+ ws['!merges']=[{s:{r:0,c:5},e:{r:0,c:12}},...[0,1,2,3,4,13].map(c=>({s:{r:0,c},e:{r:1,c}}))];ws['!cols']=[{wch:5},{wch:18},{wch:20},{wch:22},{wch:22},...SUB.map(()=>({wch:26})),{wch:12}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'SARANA KEBUTUHAN DASAR');XLSX.writeFile(wb,'Kebutuhan_Sarpras_Perbatasan.xlsx');
+}
+async function toData(s){if(s.startsWith('data:'))return s;return new Promise(ok=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);ok(c.toDataURL('image/jpeg',.8))};im.onerror=()=>ok(null);im.src=s})}
+async function exPdf(){
+ const d=new jspdf.jsPDF({orientation:'landscape'});d.setFontSize(13);d.text('Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan',14,14);
+ d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Foto',rowSpan:2}],SUB],body:flat(),startY:20,styles:{fontSize:6.5},headStyles:{fillColor:[15,81,149]}});
+ for(const k of filt())for(const r of (DB.lokasi[k.id]||[]).filter(r=>(r.foto||[]).length)){
+  d.addPage();d.setFontSize(11);d.text(`Lampiran Foto: ${k.kec}, ${k.kab} — ${r.pulau||'-'}`,14,14);let i=0;
+  for(const f of r.foto){const u=await toData(f.src);if(!u)continue;d.addImage(u,'JPEG',14+(i%3)*92,22+Math.floor(i/3)*70,88,64);i++}
+ }
+ d.save('Kebutuhan_Sarpras_Perbatasan.pdf');
+}
+
+/* ===== Kelola akun ===== */
+const RL={owner:'Owner',admin:'Admin',pic:'User/PIC'};
+function usersUI(){
+ const canAll=ME.role=='owner';
+ $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">Kelola Akun</h3>
+ <div class="tw" style="max-height:36vh"><table><tr><th>Pengguna</th><th>Nama</th><th>Peran</th><th>No. Kecamatan</th><th></th></tr>${DB.users.map((x,i)=>`<tr><td>${esc(x.u)}</td><td>${esc(x.nama)}</td><td>${RL[x.role]}</td><td>${x.role=='pic'?esc(x.kec.join(', ')):'Semua'}</td><td>${(canAll||x.role=='pic')&&x.u!=ME.u?`<button class="btn red sm" onclick="delU(${i})">Hapus</button>`:''}</td></tr>`).join('')}</table></div>
+ <h4>Tambah / ubah akun</h4><div class="row" style="grid-template-columns:1fr 1fr 1fr 1fr 2fr"><input id="nu" placeholder="Nama pengguna/email"><input id="nn" placeholder="Nama lengkap"><select id="nr"><option value="pic">User/PIC</option>${canAll?'<option value="admin">Admin</option><option value="owner">Owner</option>':''}</select><input id="np" type="password" placeholder="Kata sandi"><input id="nk" placeholder="No. kecamatan PIC (mis. 1,2,3)"></div>
+ <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" onclick="closeM()">Tutup</button><button class="btn" onclick="addU()">Simpan akun</button></div></div></div>`;
+}
+async function addU(){
+ const u=$('nu').value.trim(),p=$('np').value;if(!u||!p)return alert('Nama pengguna dan kata sandi wajib diisi.');
+ const o={u,nama:$('nn').value.trim()||u,role:$('nr').value,h:await hash(p),kec:$('nk').value.split(',').map(s=>+s.trim()).filter(n=>n>=1&&n<=KEC.length)};
+ const i=DB.users.findIndex(x=>x.u.toLowerCase()==u.toLowerCase());
+ if(i>=0){if(ME.role!='owner'&&DB.users[i].role!='pic')return alert('Hanya Owner yang dapat mengubah akun ini.');DB.users[i]=o}else DB.users.push(o);
+ commit();usersUI();
+}
+function delU(i){if(confirm('Hapus akun ini?')){DB.users.splice(i,1);commit();usersUI()}}
+
+const ready=loadDB();
+$('lp').addEventListener('keydown',e=>e.key=='Enter'&&doLogin());
+</script></body></html>
