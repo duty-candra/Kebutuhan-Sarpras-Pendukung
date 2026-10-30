@@ -115,6 +115,27 @@ tbody tr:hover td{background:#ffffff2b}
 .card{background:#ffffff14}
 .row3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}.row3 label{margin-top:6px}
 @media(max-width:800px){.hero{display:none}.hero h1{font-size:30px}.wl h2{font-size:26px}.row3{grid-template-columns:1fr}.ht h1{font-size:18px}.stat b{font-size:28px}}
+
+/* ===== Latar disamakan dengan halaman login + judul instansi lebih besar ===== */
+html{background:#0b3a78}
+body{background:radial-gradient(circle at 85% 10%,#35c8ea 0,transparent 38%),linear-gradient(155deg,#0b3a78,#1470b8 55%,#1fb0d6) fixed;min-height:100vh}
+#login{background:transparent}
+.formside{background:#06307a52}
+header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
+.ht small{font-size:24px;font-weight:800;letter-spacing:.3px;line-height:1.25}
+.ht h1{font-size:18px;font-weight:600}
+.eb{font-size:18px;font-weight:800}
+.foot,.info small{color:#fff;font-weight:600;text-shadow:0 1px 3px #0b3a78cc}
+@media(max-width:800px){.ht small{font-size:17px}.ht h1{font-size:15px}.eb{font-size:14px}}
+
+/* ===== Tulisan instansi > tulisan di bawahnya; kartu & banner menyatu dengan latar ===== */
+:root{--card:#06307a52}
+.mb{background:#0b4a9c}
+.welcome{background:#06307a52;border:1px solid #ffffff2e;box-shadow:none}
+.eb{font-size:30px;font-weight:800;line-height:1.25;letter-spacing:.2px;padding:8px 18px;border-radius:18px}
+.wl h2{font-size:24px;margin:14px 0 6px}.wl p{font-size:17px}
+.ht small{font-size:26px}.ht h1{font-size:17px}
+@media(max-width:800px){.eb{font-size:19px}.wl h2{font-size:20px}.ht small{font-size:18px}.ht h1{font-size:14px}}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -154,7 +175,7 @@ tbody tr:hover td{background:#ffffff2b}
    <button class="btn sec sm" id="bu" onclick="usersUI()">Kelola Akun</button>
    <button class="btn sec sm" id="bg" onclick="push(true)">Sinkron GitHub</button>
   </div>
-  <div class="tw"><table><thead><tr><th rowspan="2">No</th><th rowspan="2">Provinsi</th><th rowspan="2">Kabupaten/Kota</th><th rowspan="2">Nama Kecamatan</th><th rowspan="2">Lokasi (Pulau)</th><th colspan="8" class="c">KEBUTUHAN SARANA PRASARANA DASAR</th><th rowspan="2">Foto</th><th rowspan="2">Status</th><th rowspan="2"></th></tr><tr><th>Akses Jalan</th><th>Air Bersih / Air Minum</th><th>Jembatan</th><th>Telekomunikasi</th><th>Fasilitas Pendidikan</th><th>Fasilitas Kesehatan</th><th>Listrik</th><th>Kebutuhan Lainnya</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th rowspan="2">No</th><th rowspan="2">Provinsi</th><th rowspan="2">Kabupaten/Kota</th><th rowspan="2">Nama Kecamatan</th><th rowspan="2">Lokasi</th><th colspan="8" class="c">KEBUTUHAN SARANA PRASARANA DASAR</th><th rowspan="2">Foto</th><th rowspan="2">Status</th><th rowspan="2"></th></tr><tr><th>Akses Jalan</th><th>Air Bersih / Air Minum</th><th>Jembatan</th><th>Telekomunikasi</th><th>Fasilitas Pendidikan</th><th>Fasilitas Kesehatan</th><th>Listrik</th><th>Kebutuhan Lainnya</th></tr></thead><tbody id="tb"></tbody></table></div>
   <div class="foot" id="cnt"></div>
  </main>
 </section>
@@ -276,7 +297,7 @@ function filt(x='f',Ls){const p=$(x+'p').value,k=$(x+'k').value,s=$(x+'s').value
  return (Ls||mine()).filter(v=>(!p||v.prov==p)&&(!k||v.kab==k)&&(s===''||((DB.lokasi[v.id]||[]).length>0)==(s=='1'))&&(!q||v.kec.toLowerCase().includes(q)))}
 const LK=x=>DB.lokasi[x.id]||[];
 function statsHTML(all,pub){const done=all.filter(x=>LK(x).length).length,tl=all.reduce((a,x)=>a+LK(x).length,0),tf=all.reduce((a,x)=>a+LK(x).reduce((b,r)=>b+(r.foto||[]).length,0),0);
- return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi (pulau)','📍'],...(pub?[]:[[tf,'Foto data dukung','📷']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
+ return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi','📍'],...(pub?[]:[[tf,'Foto data dukung','📷']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
 function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x);(rs.length?rs:[null]).forEach((r,j)=>{
  h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td>${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
 function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(f,true);$('cnt').textContent=`Menampilkan ${f.length} dari ${all.length} kecamatan`}
@@ -287,11 +308,11 @@ function gal(id,j){const r=DB.lokasi[id][j];$('md').innerHTML=`<div class="modal
 function edit(id){EID=id;W=JSON.parse(JSON.stringify(DB.lokasi[id]||[]));if(!W.length)W=[blank()];draw()}
 function draw(){
  const sc=(document.querySelector('.mb')||{}).scrollTop||0,k=KEC[EID-1];
- $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">${esc(k.kec)} — ${esc(k.kab)}, ${esc(k.prov)}</h3><small>${k.dl} · ${k.pk}. Isi lokasi (pulau) dan kebutuhan sarana prasarana dasar; tambahkan foto sebagai data dukung.</small><div style="margin-top:12px">
- ${W.map((r,i)=>`<div class="card"><div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Lokasi (Pulau)" value="${esc(r.pulau)}" oninput="W[${i}].pulau=this.value"><button class="btn red sm" style="white-space:nowrap" onclick="W.splice(${i},1);draw()">Hapus lokasi</button></div>
+ $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">${esc(k.kec)} — ${esc(k.kab)}, ${esc(k.prov)}</h3><small>${k.dl} · ${k.pk}. Isi lokasi dan kebutuhan sarana prasarana dasar; tambahkan foto sebagai data dukung.</small><div style="margin-top:12px">
+ ${W.map((r,i)=>`<div class="card"><div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Lokasi" value="${esc(r.pulau)}" oninput="W[${i}].pulau=this.value"><button class="btn red sm" style="white-space:nowrap" onclick="W.splice(${i},1);draw()">Hapus lokasi</button></div>
  <div class="grid8">${KB.map(b=>`<div><label style="margin:0 0 3px;font-size:15px">${b[1]}</label><textarea rows="2" oninput="W[${i}].${b[0]}=this.value">${esc(r[b[0]])}</textarea></div>`).join('')}</div>
  <div style="margin-top:8px"><label>Foto data dukung (maks. 6)</label>${r.foto.map((f,j)=>`<span class="th"><img src="${esc(f.src)}"><button class="btn red sm" onclick="W[${i}].foto.splice(${j},1);draw()">✕</button></span>`).join('')}<input type="file" accept="image/*" multiple onchange="addPh(${i},this.files)"></div></div>`).join('')}</div>
- <button class="btn sec sm" onclick="W.push(blank());draw()">+ Tambah lokasi (pulau)</button>
+ <button class="btn sec sm" onclick="W.push(blank());draw()">+ Tambah lokasi</button>
  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" onclick="closeM()">Batal</button><button class="btn" onclick="saveRows()">Simpan</button></div></div></div>`;
  document.querySelector('.mb').scrollTop=sc;
 }
@@ -304,7 +325,7 @@ function saveRows(){
 const closeM=()=>$('md').innerHTML='';
 
 /* ===== Ekspor (kolom mengikuti template Excel) ===== */
-const H1=['No','Provinsi','Kabupaten/Kota','Nama Kecamatan','Lokasi (Pulau)'],SUB=KB.map(b=>b[1]);
+const H1=['No','Provinsi','Kabupaten/Kota','Nama Kecamatan','Lokasi'],SUB=KB.map(b=>b[1]);
 function flat(){const o=[];filt().forEach(k=>{const rs=DB.lokasi[k.id]||[];(rs.length?rs:[{}]).forEach(r=>o.push([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),(r.foto||[]).length||'']))});return o}
 function exXlsx(){
  log('Unduh Excel',flat().length+' baris');
