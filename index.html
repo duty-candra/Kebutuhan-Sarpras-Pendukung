@@ -185,7 +185,7 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 
 <script>
 /* ===== KONFIGURASI GITHUB (ganti sesuai repo Anda) ===== */
-const CFG=(()=>{const m=location.hostname.match(/^(.+)\.github\.io$/),sg=location.pathname.split('/')[1]||'';const c={owner:m?m[1]:'GANTI_USERNAME',repo:m?(sg&&!sg.includes('.')?sg:m[1]+'.github.io'):'GANTI_REPO',branch:'main',path:'data.json'};try{const o=JSON.parse(localStorage.getItem('ksp_cfg')||'null');if(o)for(const k of ['owner','repo','branch'])if(o[k])c[k]=o[k]}catch(e){}return c})();
+const CFG=(()=>{const m=location.hostname.match(/^(.+)\.github\.io$/),sg=location.pathname.split('/')[1]||'';const c={owner:m?m[1]:'GANTI_USERNAME',repo:m?(sg&&!sg.includes('.')?sg:m[1]+'.github.io'):'GANTI_REPO',branch:'main',path:'data.json',api:''};try{const o=JSON.parse(localStorage.getItem('ksp_cfg')||'null');if(o)for(const k of ['owner','repo','branch','api'])if(o[k])c[k]=o[k]}catch(e){}return c})();
 
 /* ===== DATA: Kepka BNPP 35.04-705 Tahun 2025 (299 kecamatan) =====
    Kode: huruf1 L=Laut/D=Darat, huruf2 P=PKSN/K=KPP */
@@ -228,17 +228,20 @@ async function loadDB(){let L=null,R=null;
  try{L=await idb('get')}catch(e){}
  try{const r=await fetch(CFG.path+'?t='+Date.now(),{cache:'no-store'});if(r.ok)R=await r.json()}catch(e){}
  if(!R){DB=L||JSON.parse(JSON.stringify(SEED));return}
- for(const k of ['_dirty','_pend','_usr','_v'])delete R[k];
+ for(const k of ['_dirty','_pend','_usr','_v','_plog','_recent'])delete R[k];
  if(R.cfg&&R.cfg.owner&&R.cfg.repo&&GHPH()){CFG.owner=R.cfg.owner;CFG.repo=R.cfg.repo;CFG.branch=R.cfg.branch||CFG.branch}
- DB=R;if(L&&L._dirty){
+ if(R.cfg&&R.cfg.api)CFG.api=R.cfg.api;
+ DB=R;
+ if(L&&L._recent){DB._recent=L._recent;DB.lokasi=DB.lokasi||{};for(const id in L._recent)if(Date.now()-L._recent[id]<600000&&L.lokasi&&L.lokasi[id])DB.lokasi[id]=L.lokasi[id]}
+ if(L&&L._dirty){
   DB.lokasi=DB.lokasi||{};(L._pend||[]).forEach(id=>DB.lokasi[id]=(L.lokasi||{})[id]);if(L._usr)DB.users=L.users;
   const seen=new Set((DB.log||[]).map(x=>x.t+x.u+x.a));DB.log=[...(DB.log||[]),...(L.log||[]).filter(x=>!seen.has(x.t+x.u+x.a))].sort((a,b)=>a.t<b.t?-1:1);
-  DB._pend=L._pend||[];DB._usr=!!L._usr;DB._dirty=true;
+  DB._pend=L._pend||[];DB._plog=L._plog||[];DB._usr=!!L._usr;DB._dirty=true;
  }
 }
 const GHPH=()=>!CFG.owner||!CFG.repo||/^GANTI_/.test(CFG.owner)||/^GANTI_/.test(CFG.repo);
 const ghMsg=st=>({401:'Token tidak valid atau sudah kedaluwarsa. Buat token baru.',403:'Token tidak punya izin menulis. Beri izin "Contents: Read and write" pada repo ini.',404:`Repo "${CFG.owner}/${CFG.repo}" (branch ${CFG.branch}) tidak ditemukan atau token tidak punya akses ke repo tersebut.`,409:'Konflik versi data, coba sinkron lagi.',422:'Data ditolak GitHub (periksa branch dan nama repo).'})[st]||('GitHub membalas kode '+st);
-const saveCfg=()=>{try{localStorage.setItem('ksp_cfg',JSON.stringify({owner:CFG.owner,repo:CFG.repo,branch:CFG.branch}))}catch(e){}};
+const saveCfg=()=>{try{localStorage.setItem('ksp_cfg',JSON.stringify({owner:CFG.owner,repo:CFG.repo,branch:CFG.branch,api:CFG.api}))}catch(e){}};
 const ghH=()=>({Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'});
 async function fixBranch(){
  try{const r=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`,{headers:ghH(),cache:'no-store'});
@@ -281,7 +284,7 @@ async function ghRead(p,retry=1){
  if(j.encoding=='base64'&&j.content)t=decodeURIComponent(escape(atob(j.content.replace(/\s/g,''))));
  else{const r=await fetch(u+'&t='+Date.now(),{headers:{...H,Accept:'application/vnd.github.raw+json'},cache:'no-store'});if(!r.ok)throw new Error(ghMsg(r.status));t=await r.text()}
  let data=null;try{data=JSON.parse(t)}catch(e){}
- if(data)for(const k of ['_dirty','_pend','_usr','_v'])delete data[k];
+ if(data)for(const k of ['_dirty','_pend','_usr','_v','_plog','_recent'])delete data[k];
  return{sha:j.sha,data}
 }
 async function ghPutSha(p,b,msg,sh){
@@ -296,12 +299,13 @@ async function ghPutSha(p,b,msg,sh){
 function mergeInto(R){
  R=R||{};const pend=new Set(DB._pend||[]),lok=R.lokasi||{};
  for(const id of pend)lok[id]=DB.lokasi[id];
+ for(const id in (DB._recent||{}))if(Date.now()-DB._recent[id]<600000&&DB.lokasi[id])lok[id]=DB.lokasi[id];
  DB.lokasi=lok;
  if(!DB._usr&&R.users&&R.users.length)DB.users=R.users;
  const seen=new Set((R.log||[]).map(x=>x.t+x.u+x.a));
  DB.log=[...(R.log||[]),...(DB.log||[]).filter(x=>!seen.has(x.t+x.u+x.a))].sort((a,b)=>a.t<b.t?-1:1).slice(-2000);
  for(const k in R)if(k[0]!='_'&&!['lokasi','users','log'].includes(k))DB[k]=R[k];
- DB.cfg={owner:CFG.owner,repo:CFG.repo,branch:CFG.branch};
+ DB.cfg={owner:CFG.owner,repo:CFG.repo,branch:CFG.branch,api:CFG.api||''};
 }
 const refreshView=()=>{try{if(ME)render();pubRender()}catch(e){}};
 let pushing=false,again=false,warned=false;
@@ -309,11 +313,44 @@ async function pull(){
  if(!TOKEN||GHPH()||pushing)return;
  try{const rd=await ghRead(CFG.path);if(!rd.data)return;mergeInto(rd.data);idb('put',DB).catch(()=>{});refreshView()}catch(e){}
 }
+let PW='';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const API_ERR={403:'Data di luar wilayah akun Anda ditolak server.',413:'Ukuran data/foto terlalu besar.'};
+async function apiCall(path,body){
+ let r;try{r=await fetch(CFG.api+path,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(body)})}catch(e){throw new Error('Tidak bisa terhubung ke server penerima (cek koneksi internet).')}
+ let d={};try{d=await r.json()}catch(e){}
+ if(!r.ok||!d.ok)throw new Error(d.error||API_ERR[r.status]||('Server membalas kode '+r.status));
+ return d}
+async function pushPIC(manual){
+ if(!PW){$('sync').textContent='⚠ Sesi belum lengkap. Keluar lalu login ulang agar data bisa dikirim.';if(manual)alert('Keluar lalu login ulang agar data bisa dikirim ke server.');return}
+ if(pushing){again=true;return}
+ pushing=true;
+ try{$('sync').textContent='Mengirim data ke server...';
+  const v0=DB._v||0,ids=[...(DB._pend||[])],lg=[...(DB._plog||[])],auth={u:ME.u,p:PW};
+  for(const id of ids)for(const r of DB.lokasi[id]||[])for(const f of r.foto||[])if(f.src.startsWith('data:')){await apiCall('/photo',{...auth,id:f.id,b64:f.src.split(',')[1]});f.src='foto/'+f.id+'.jpg'}
+  if(ids.length||lg.length){const lokasi={};ids.forEach(id=>lokasi[id]=DB.lokasi[id]||[]);await apiCall('/submit',{...auth,lokasi,log:lg})}
+  DB._recent=DB._recent||{};ids.forEach(id=>DB._recent[id]=Date.now());
+  DB._plog=(DB._plog||[]).slice(lg.length);
+  if((DB._v||0)==v0)DB._pend=[];
+  DB._dirty=!!((DB._pend||[]).length||DB._plog.length);
+  idb('put',DB).catch(()=>{});
+  $('sync').textContent='Data terkirim ke server ✓ '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  refreshView();
+ }catch(e){const m=errTxt(e);$('sync').textContent='Gagal mengirim: '+m;if(manual)alert('Gagal mengirim data.\n\n'+m)}
+ finally{pushing=false;if(again){again=false;push(false)}}
+}
+async function pullSite(){
+ try{const r=await fetch(CFG.path+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const R=await r.json();
+  for(const k of ['_dirty','_pend','_usr','_v','_plog','_recent'])delete R[k];
+  mergeInto(R);idb('put',DB).catch(()=>{});refreshView()}catch(e){}
+}
+async function flush(){const t=Date.now();while(pushing&&Date.now()-t<8000)await sleep(100);await Promise.race([push(false),sleep(8000)])}
 async function push(manual){
+ if(ME&&ME.role=='pic'&&CFG.api)return pushPIC(manual);
  if(!TOKEN){
   const pic=ME&&ME.role=='pic';
-  $('sync').textContent=pic?'⚠ Data tersimpan di perangkat ini, BELUM terkirim ke Admin. Klik 🔑 Token GitHub.':'Tersimpan lokal (belum sinkron GitHub)';
-  if(manual||(pic&&!warned)){warned=true;alert('Token GitHub belum diisi, sehingga data belum terkirim ke Admin.\n\nKlik tombol 🔑 Token GitHub lalu masukkan token dari Admin.')}
+  $('sync').textContent=pic?'⚠ Data tersimpan di perangkat ini, BELUM terkirim. Server penerima belum diatur — hubungi Admin.':'Tersimpan lokal (belum sinkron GitHub)';
+  if(manual||(pic&&!warned)){warned=true;alert(pic?'Server penerima data belum diatur oleh Admin, sehingga data belum terkirim.\n\nHubungi Admin.':'Token GitHub belum diisi. Klik tombol 🔑 Token GitHub.')}
   return}
  if(pushing){again=true;return}
  pushing=true;
@@ -338,7 +375,8 @@ async function push(manual){
 function commit(){DB._v=(DB._v||0)+1;DB._dirty=true;idb('put',DB).catch(()=>{});push(false)}
 
 function log(a,k='',sync=false,who){
- (DB.log=DB.log||[]).push({t:new Date().toISOString(),u:who||(ME?ME.u:'-'),r:ME?ME.role:'-',a,k});
+ const le={t:new Date().toISOString(),u:who||(ME?ME.u:'-'),r:ME?ME.role:'-',a,k};(DB.log=DB.log||[]).push(le);
+ if(ME&&ME.role=='pic'&&!who)(DB._plog=DB._plog||[]).push(le);
  if(DB.log.length>2000)DB.log.splice(0,DB.log.length-2000);
  if(sync)commit();else{DB._dirty=true;idb('put',DB).catch(()=>{})}
 }
@@ -346,20 +384,21 @@ async function doLogin(){await ready;
  const u=$('lu').value.trim().toLowerCase().replace(/\s+/g,' '),h=await hash($('lp').value);
  const a=DB.users.find(x=>(x.u.toLowerCase()==u||x.u.split('@')[0].toLowerCase()==u||(x.prov&&x.prov.toLowerCase()==u))&&x.h==h);
  if(!a){ME=null;log('Login gagal','Percobaan dengan nama pengguna: '+u.slice(0,60),false,u||'-');$('le').textContent='Nama pengguna atau kata sandi salah.';return}
- sessionStorage.setItem('ksp_sess',JSON.stringify({u:a.u,h:a.h}));enter(a,true);
+ sessionStorage.setItem('ksp_sess',JSON.stringify({u:a.u,h:a.h}));PW=$('lp').value;try{sessionStorage.setItem('ksp_pw',PW)}catch(e){}enter(a,true);
 }
 function enter(a,fresh){ME=a;$('wt').textContent='Halo, '+a.nama+' 👋';$('le').textContent='';const adm=a.role!='pic';
  try{TOKEN=sessionStorage.getItem('ksp_tk')||localStorage.getItem('ksp_tok')||''}catch(e){TOKEN=''}
+ if(!fresh)try{PW=sessionStorage.getItem('ksp_pw')||PW}catch(e){}
  $('login').classList.add('hide');$('app').classList.remove('hide');
  $('wh').textContent=a.nama+' ('+({owner:'Owner',admin:'Admin',pic:'User/PIC'})[a.role]+')'+(a.prov?' · '+a.prov:'');
- ['bu','bl'].forEach(i=>$(i).classList.toggle('hide',!adm));['bg','bt'].forEach(i=>$(i).classList.remove('hide'));
- $('sync').textContent=TOKEN?'Token GitHub aktif':'Token GitHub belum diatur';
+ ['bu','bl'].forEach(i=>$(i).classList.toggle('hide',!adm));['bg','bt'].forEach(i=>$(i).classList.remove('hide'));$('bg').textContent=adm?'Sinkron GitHub':'Kirim ulang data';$('bt').classList.toggle('hide',!adm&&!!CFG.api);
+ $('sync').textContent=(!adm&&CFG.api)?'Terhubung ke server penerima':(TOKEN?'Token GitHub aktif':(adm?'Token GitHub belum diatur':'Server penerima belum diatur'));
  const ks=mine();$('fp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(ks.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
  {const ps=[...new Set(ks.map(k=>k.prov))];if(a.role=='pic'&&ps.length==1)$('fp').value=ps[0]}
- fillKab();render();if(fresh){log('Login');if(!TOKEN)tokUI()}
- if(TOKEN)DB._dirty?push(false):pull();
+ fillKab();render();if(fresh){log('Login');if(!TOKEN&&!(a.role=='pic'&&CFG.api))tokUI()}
+ if(a.role=='pic'&&CFG.api)DB._dirty?push(false):pullSite();else if(TOKEN)DB._dirty?push(false):pull();
 }
-function logout(){log('Logout');ME=null;TOKEN='';sessionStorage.removeItem('ksp_sess');sessionStorage.removeItem('ksp_tk');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
+async function logout(){log('Logout');try{if(ME&&((ME.role=='pic'&&CFG.api)||TOKEN))await flush()}catch(e){}ME=null;TOKEN='';PW='';sessionStorage.removeItem('ksp_sess');sessionStorage.removeItem('ksp_tk');sessionStorage.removeItem('ksp_pw');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
 function tokUI(){
  const ph=v=>/^GANTI_/.test(v)?'':esc(v);
  $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:520px"><h3 style="margin-top:0">Token GitHub &amp; Repo</h3><small>Diperlukan untuk mengirim data dan foto ke repo GitHub agar terlihat oleh Admin. ${ME&&ME.role=='pic'?'<b>Minta token ini kepada Admin.</b> ':''}${TOKEN?'Token aktif.':'Belum ada token.'} Token harus punya izin <b>Contents: Read and write</b> pada repo ini.</small>
@@ -367,6 +406,7 @@ function tokUI(){
  <label>Username GitHub (pemilik repo)</label><input id="co" value="${ph(CFG.owner)}" placeholder="mis. bnpp-ri" autocomplete="off">
  <label>Nama Repo</label><input id="cr" value="${ph(CFG.repo)}" placeholder="mis. kebutuhan-sarpras" autocomplete="off">
  <label>Branch</label><input id="cb" value="${esc(CFG.branch)}" placeholder="main" autocomplete="off">
+ ${ME&&ME.role!='pic'?`<label>URL Server Penerima (agar PIC tanpa token)</label><input id="ca" value="${esc(CFG.api||'')}" placeholder="https://nama.akun.workers.dev" autocomplete="off"><small>Kosongkan jika PIC memakai token sendiri.</small>`:''}
  <label style="display:flex;gap:6px;align-items:center"><input id="tr" type="checkbox" style="width:auto"> Ingat token di perangkat ini</label>
  <div id="tm" class="foot" style="min-height:22px;margin-top:10px"></div>
  <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">${TOKEN?'<button class="btn red" onclick="setTok(\'\')">Hapus token</button>':''}<button class="btn sec" onclick="closeM()">Tutup</button><button class="btn" onclick="saveTok()">Simpan &amp; Tes</button></div></div></div>`;
@@ -376,7 +416,9 @@ async function saveTok(){
  CFG.owner=$('co').value.trim();CFG.repo=$('cr').value.trim().replace(/\.git$/,'');CFG.branch=$('cb').value.trim()||'main';
  if(!v){$('tm').textContent='✗ Token belum diisi.';return}
  TOKEN=v;$('tm').textContent='Menguji koneksi ke GitHub...';
+ if($('ca'))CFG.api=$('ca').value.trim().replace(/\/+$/,'');
  try{await ghTest()}catch(e){$('tm').textContent='✗ '+errTxt(e);return}
+ if(CFG.api){$('tm').textContent='Menguji server penerima...';try{const r=await fetch(CFG.api+'/',{cache:'no-store'});const d=await r.json();if(!d.ok)throw 0;if(!d.configured){$('tm').textContent='✗ Server penerima terhubung tetapi variabel GH_TOKEN/GH_OWNER/GH_REPO belum diisi.';return}}catch(e){$('tm').textContent='✗ Server penerima tidak dapat dihubungi. Periksa URL-nya.';return}saveCfg()}
  sessionStorage.setItem('ksp_tk',v);try{if($('tr').checked)localStorage.setItem('ksp_tok',v);else localStorage.removeItem('ksp_tok')}catch(e){}
  closeM();$('sync').textContent='Token GitHub aktif';
  log('Token GitHub diatur','',true);
@@ -479,4 +521,5 @@ function delU(i){if(confirm('Hapus akun ini?')){const x=DB.users.splice(i,1)[0];
 
 const ready=loadDB().catch(()=>{DB=JSON.parse(JSON.stringify(SEED))}).then(()=>{DB.lokasi=DB.lokasi||{};DB.log=DB.log||[];if(!DB.users||!DB.users.length)DB.users=JSON.parse(JSON.stringify(SEED.users));try{pubInit()}catch(e){console.error(e)};try{const q=JSON.parse(sessionStorage.getItem('ksp_sess')||'null'),a=q&&DB.users.find(x=>x.u==q.u&&x.h==q.h);if(a)enter(a,false)}catch(e){}});
 $('lp').addEventListener('keydown',e=>e.key=='Enter'&&doLogin());
+setInterval(()=>{if(document.hidden||pushing||!DB||$('md').innerHTML.trim())return;if(ME&&ME.role!='pic'&&TOKEN)pull();else pullSite()},60000);
 </script></body></html>
