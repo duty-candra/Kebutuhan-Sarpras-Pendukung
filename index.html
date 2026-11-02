@@ -228,6 +228,8 @@ async function loadDB(){let L=null,R=null;
  try{L=await idb('get')}catch(e){}
  try{const r=await fetch(CFG.path+'?t='+Date.now(),{cache:'no-store'});if(r.ok)R=await r.json()}catch(e){}
  if(!R){DB=L||JSON.parse(JSON.stringify(SEED));return}
+ for(const k of ['_dirty','_pend','_usr','_v'])delete R[k];
+ if(R.cfg&&R.cfg.owner&&R.cfg.repo&&GHPH()){CFG.owner=R.cfg.owner;CFG.repo=R.cfg.repo;CFG.branch=R.cfg.branch||CFG.branch}
  DB=R;if(L&&L._dirty){
   DB.lokasi=DB.lokasi||{};(L._pend||[]).forEach(id=>DB.lokasi[id]=(L.lokasi||{})[id]);if(L._usr)DB.users=L.users;
   const seen=new Set((DB.log||[]).map(x=>x.t+x.u+x.a));DB.log=[...(DB.log||[]),...(L.log||[]).filter(x=>!seen.has(x.t+x.u+x.a))].sort((a,b)=>a.t<b.t?-1:1);
@@ -267,16 +269,73 @@ async function ghTest(){
  saveCfg();
 }
 const errTxt=e=>e instanceof TypeError?'Tidak bisa terhubung ke GitHub (cek koneksi internet).':(e&&e.message)||'Terjadi kesalahan.';
-async function push(manual){
- if(!TOKEN){if(manual)alert('Masukkan Token GitHub (tombol 🔑 Token GitHub) untuk sinkronisasi.');$('sync').textContent='Tersimpan lokal (belum sinkron GitHub)';return}
- try{$('sync').textContent='Menyinkronkan...';
-  for(const k in DB.lokasi)for(const r of DB.lokasi[k])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';await ghPut(p,f.src.split(',')[1],'Foto '+f.id);f.src=p}
-  await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data oleh '+ME.u);
-  DB._dirty=false;DB._pend=[];DB._usr=false;idb('put',DB);
-  $('sync').textContent='Tersinkron ke GitHub ✓';
- }catch(e){const m=errTxt(e);$('sync').textContent='Gagal sinkron: '+m;if(manual)alert('Gagal sinkron ke GitHub.\n\n'+m)}
+const ser=d=>{const o={};for(const k in d)if(k[0]!='_')o[k]=d[k];return JSON.stringify(o)};
+const toB64=t=>btoa(unescape(encodeURIComponent(t)));
+async function ghRead(p,retry=1){
+ if(GHPH())throw new Error('Repo GitHub belum diatur. Klik tombol 🔑 Token GitHub, lalu isi Username dan Nama Repo.');
+ const u=`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${p}?ref=${encodeURIComponent(CFG.branch)}`,H=ghH();
+ const g=await fetch(u+'&t='+Date.now(),{headers:H,cache:'no-store'});
+ if(g.status==404){if(retry&&await fixBranch())return ghRead(p,0);return{sha:undefined,data:null}}
+ if(!g.ok)throw new Error(ghMsg(g.status));
+ const j=await g.json();let t='';
+ if(j.encoding=='base64'&&j.content)t=decodeURIComponent(escape(atob(j.content.replace(/\s/g,''))));
+ else{const r=await fetch(u+'&t='+Date.now(),{headers:{...H,Accept:'application/vnd.github.raw+json'},cache:'no-store'});if(!r.ok)throw new Error(ghMsg(r.status));t=await r.text()}
+ let data=null;try{data=JSON.parse(t)}catch(e){}
+ if(data)for(const k of ['_dirty','_pend','_usr','_v'])delete data[k];
+ return{sha:j.sha,data}
 }
-function commit(){DB._dirty=true;idb('put',DB).catch(()=>{});push(false)}
+async function ghPutSha(p,b,msg,sh){
+ const u=`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${p}`;
+ const r=await fetch(u,{method:'PUT',headers:{...ghH(),'Content-Type':'application/json'},body:JSON.stringify({message:msg,branch:CFG.branch,content:b,sha:sh})});
+ if(r.ok)return true;
+ let d='';try{d=(await r.json()).message||''}catch(e){}
+ const e=new Error(ghMsg(r.status)+(d?' ['+d+']':''));e.conflict=r.status==409||r.status==422;throw e
+}
+/* Gabungkan data terbaru di GitHub dengan perubahan lokal: kecamatan yang diubah di perangkat ini
+   menang, kecamatan lain mengikuti GitHub (data PIC lain tidak tertimpa); log digabung. */
+function mergeInto(R){
+ R=R||{};const pend=new Set(DB._pend||[]),lok=R.lokasi||{};
+ for(const id of pend)lok[id]=DB.lokasi[id];
+ DB.lokasi=lok;
+ if(!DB._usr&&R.users&&R.users.length)DB.users=R.users;
+ const seen=new Set((R.log||[]).map(x=>x.t+x.u+x.a));
+ DB.log=[...(R.log||[]),...(DB.log||[]).filter(x=>!seen.has(x.t+x.u+x.a))].sort((a,b)=>a.t<b.t?-1:1).slice(-2000);
+ for(const k in R)if(k[0]!='_'&&!['lokasi','users','log'].includes(k))DB[k]=R[k];
+ DB.cfg={owner:CFG.owner,repo:CFG.repo,branch:CFG.branch};
+}
+const refreshView=()=>{try{if(ME)render();pubRender()}catch(e){}};
+let pushing=false,again=false,warned=false;
+async function pull(){
+ if(!TOKEN||GHPH()||pushing)return;
+ try{const rd=await ghRead(CFG.path);if(!rd.data)return;mergeInto(rd.data);idb('put',DB).catch(()=>{});refreshView()}catch(e){}
+}
+async function push(manual){
+ if(!TOKEN){
+  const pic=ME&&ME.role=='pic';
+  $('sync').textContent=pic?'⚠ Data tersimpan di perangkat ini, BELUM terkirim ke Admin. Klik 🔑 Token GitHub.':'Tersimpan lokal (belum sinkron GitHub)';
+  if(manual||(pic&&!warned)){warned=true;alert('Token GitHub belum diisi, sehingga data belum terkirim ke Admin.\n\nKlik tombol 🔑 Token GitHub lalu masukkan token dari Admin.')}
+  return}
+ if(pushing){again=true;return}
+ pushing=true;
+ try{$('sync').textContent='Menyinkronkan...';
+  const v0=DB._v||0;
+  for(const k in DB.lokasi)for(const r of DB.lokasi[k]||[])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';await ghPut(p,f.src.split(',')[1],'Foto '+f.id);f.src=p}
+  for(let i=0;i<3;i++){
+   const rd=await ghRead(CFG.path);
+   if(rd.sha&&!rd.data)throw new Error('File data.json di GitHub tidak bisa dibaca. Sinkron dibatalkan agar data tidak rusak.');
+   mergeInto(rd.data);
+   const text=ser(DB);
+   if(rd.data&&ser(rd.data)===text)break;
+   try{await ghPutSha(CFG.path,toB64(text),'Update data oleh '+ME.u,rd.sha);break}catch(e){if(!e.conflict||i==2)throw e}
+  }
+  if((DB._v||0)==v0){DB._dirty=false;DB._pend=[];DB._usr=false}
+  idb('put',DB).catch(()=>{});
+  $('sync').textContent='Tersinkron ke GitHub ✓ '+new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  refreshView();
+ }catch(e){const m=errTxt(e);$('sync').textContent='Gagal sinkron: '+m;if(manual)alert('Gagal sinkron ke GitHub.\n\n'+m)}
+ finally{pushing=false;if(again){again=false;push(false)}}
+}
+function commit(){DB._v=(DB._v||0)+1;DB._dirty=true;idb('put',DB).catch(()=>{});push(false)}
 
 function log(a,k='',sync=false,who){
  (DB.log=DB.log||[]).push({t:new Date().toISOString(),u:who||(ME?ME.u:'-'),r:ME?ME.role:'-',a,k});
@@ -290,19 +349,20 @@ async function doLogin(){await ready;
  sessionStorage.setItem('ksp_sess',JSON.stringify({u:a.u,h:a.h}));enter(a,true);
 }
 function enter(a,fresh){ME=a;$('wt').textContent='Halo, '+a.nama+' 👋';$('le').textContent='';const adm=a.role!='pic';
- TOKEN=adm?(sessionStorage.getItem('ksp_tk')||localStorage.getItem('ksp_tok')||''):'';
+ try{TOKEN=sessionStorage.getItem('ksp_tk')||localStorage.getItem('ksp_tok')||''}catch(e){TOKEN=''}
  $('login').classList.add('hide');$('app').classList.remove('hide');
  $('wh').textContent=a.nama+' ('+({owner:'Owner',admin:'Admin',pic:'User/PIC'})[a.role]+')'+(a.prov?' · '+a.prov:'');
- ['bu','bg','bl','bt'].forEach(i=>$(i).classList.toggle('hide',!adm));
- $('sync').textContent=TOKEN?'Token GitHub aktif':(adm?'Token GitHub belum diatur':'');
+ ['bu','bl'].forEach(i=>$(i).classList.toggle('hide',!adm));['bg','bt'].forEach(i=>$(i).classList.remove('hide'));
+ $('sync').textContent=TOKEN?'Token GitHub aktif':'Token GitHub belum diatur';
  const ks=mine();$('fp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(ks.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
  {const ps=[...new Set(ks.map(k=>k.prov))];if(a.role=='pic'&&ps.length==1)$('fp').value=ps[0]}
- fillKab();render();if(fresh){log('Login');if(adm&&!TOKEN)tokUI()}
+ fillKab();render();if(fresh){log('Login');if(!TOKEN)tokUI()}
+ if(TOKEN)DB._dirty?push(false):pull();
 }
 function logout(){log('Logout');ME=null;TOKEN='';sessionStorage.removeItem('ksp_sess');sessionStorage.removeItem('ksp_tk');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
 function tokUI(){
  const ph=v=>/^GANTI_/.test(v)?'':esc(v);
- $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:520px"><h3 style="margin-top:0">Token GitHub &amp; Repo</h3><small>Diperlukan untuk menyimpan data dan foto ke repo GitHub. ${TOKEN?'Token aktif.':'Belum ada token.'} Token harus punya izin <b>Contents: Read and write</b> pada repo ini.</small>
+ $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:520px"><h3 style="margin-top:0">Token GitHub &amp; Repo</h3><small>Diperlukan untuk mengirim data dan foto ke repo GitHub agar terlihat oleh Admin. ${ME&&ME.role=='pic'?'<b>Minta token ini kepada Admin.</b> ':''}${TOKEN?'Token aktif.':'Belum ada token.'} Token harus punya izin <b>Contents: Read and write</b> pada repo ini.</small>
  <label>Token</label><input id="tk" type="password" placeholder="${TOKEN?'(biarkan kosong untuk memakai token aktif)':'github_pat_...'}" autocomplete="off">
  <label>Username GitHub (pemilik repo)</label><input id="co" value="${ph(CFG.owner)}" placeholder="mis. bnpp-ri" autocomplete="off">
  <label>Nama Repo</label><input id="cr" value="${ph(CFG.repo)}" placeholder="mis. kebutuhan-sarpras" autocomplete="off">
