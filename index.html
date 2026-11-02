@@ -133,9 +133,11 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 .mb{background:#0b4a9c}
 .welcome{background:#06307a52;border:1px solid #ffffff2e;box-shadow:none}
 .eb{font-size:30px;font-weight:800;line-height:1.25;letter-spacing:.2px;padding:8px 18px;border-radius:18px}
-.wl h2{font-size:24px;margin:14px 0 6px}.wl p{font-size:17px}
+.wl h2{font-size:30px;margin:0 0 8px}.wl p{font-size:17px}
 .ht small{font-size:26px}.ht h1{font-size:17px}
 @media(max-width:800px){.eb{font-size:19px}.wl h2{font-size:20px}.ht small{font-size:18px}.ht h1{font-size:14px}}
+#sync{display:block;max-width:330px;margin-left:auto;line-height:1.3;font-size:13px;margin-top:2px}
+.ht{flex:1 1 520px}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -165,7 +167,7 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
   <div class="who"><div id="wh"></div><span id="sync"></span></div>
   <div class="hb"><button class="hbtn" id="bl" onclick="logUI()">📋 Log Aktivitas</button><button class="hbtn" id="bt" onclick="tokUI()">🔑 Token GitHub</button><button class="hbtn" onclick="logout()">Keluar</button></div></header>
  <main>
-  <div class="welcome"><div class="wl"><span class="eb">BADAN NASIONAL PENGELOLA PERBATASAN DAN DAERAH TERPENCIL-RI</span><h2 id="wt">Selamat datang</h2><p>Pantau dan lengkapi data kebutuhan sarana prasarana layanan dasar di kawasan perbatasan.</p></div><div class="ring" id="rg" style="--p:0"><div><b id="pp">0%</b><small>terisi</small></div></div><div class="wr"><b id="pn">0</b><span>kecamatan sudah diisi</span></div></div>
+  <div class="welcome"><div class="wl"><h2 id="wt">Selamat datang</h2><p>Pantau dan lengkapi data kebutuhan sarana prasarana layanan dasar di kawasan perbatasan.</p></div><div class="ring" id="rg" style="--p:0"><div><b id="pp">0%</b><small>terisi</small></div></div><div class="wr"><b id="pn">0</b><span>kecamatan sudah diisi</span></div></div>
   <div class="stats" id="stats"></div>
   <div class="bar">
    <select id="fp" onchange="fillKab();render()"></select><select id="fk" onchange="render()"></select>
@@ -183,7 +185,7 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 
 <script>
 /* ===== KONFIGURASI GITHUB (ganti sesuai repo Anda) ===== */
-const CFG=(()=>{const m=location.hostname.match(/^(.+)\.github\.io$/),sg=location.pathname.split('/')[1]||'';return{owner:m?m[1]:'GANTI_USERNAME',repo:m?(sg&&!sg.includes('.')?sg:m[1]+'.github.io'):'GANTI_REPO',branch:'main',path:'data.json'}})();
+const CFG=(()=>{const m=location.hostname.match(/^(.+)\.github\.io$/),sg=location.pathname.split('/')[1]||'';const c={owner:m?m[1]:'GANTI_USERNAME',repo:m?(sg&&!sg.includes('.')?sg:m[1]+'.github.io'):'GANTI_REPO',branch:'main',path:'data.json'};try{const o=JSON.parse(localStorage.getItem('ksp_cfg')||'null');if(o)for(const k of ['owner','repo','branch'])if(o[k])c[k]=o[k]}catch(e){}return c})();
 
 /* ===== DATA: Kepka BNPP 35.04-705 Tahun 2025 (299 kecamatan) =====
    Kode: huruf1 L=Laut/D=Darat, huruf2 P=PKSN/K=KPP */
@@ -232,19 +234,47 @@ async function loadDB(){let L=null,R=null;
   DB._pend=L._pend||[];DB._usr=!!L._usr;DB._dirty=true;
  }
 }
-async function ghPut(p,b64,msg){
- const u=`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${p}`,H={Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'};
- const g=await fetch(u+'?ref='+CFG.branch,{headers:H}),sh=g.ok?(await g.json()).sha:undefined;
- return (await fetch(u,{method:'PUT',headers:H,body:JSON.stringify({message:msg,branch:CFG.branch,content:b64,sha:sh})})).ok;
+const GHPH=()=>!CFG.owner||!CFG.repo||/^GANTI_/.test(CFG.owner)||/^GANTI_/.test(CFG.repo);
+const ghMsg=st=>({401:'Token tidak valid atau sudah kedaluwarsa. Buat token baru.',403:'Token tidak punya izin menulis. Beri izin "Contents: Read and write" pada repo ini.',404:`Repo "${CFG.owner}/${CFG.repo}" (branch ${CFG.branch}) tidak ditemukan atau token tidak punya akses ke repo tersebut.`,409:'Konflik versi data, coba sinkron lagi.',422:'Data ditolak GitHub (periksa branch dan nama repo).'})[st]||('GitHub membalas kode '+st);
+const saveCfg=()=>{try{localStorage.setItem('ksp_cfg',JSON.stringify({owner:CFG.owner,repo:CFG.repo,branch:CFG.branch}))}catch(e){}};
+const ghH=()=>({Authorization:'Bearer '+TOKEN,Accept:'application/vnd.github+json'});
+async function fixBranch(){
+ try{const r=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`,{headers:ghH(),cache:'no-store'});
+  if(!r.ok)return false;const d=(await r.json()).default_branch;
+  if(d&&d!==CFG.branch){CFG.branch=d;saveCfg();return true}}catch(e){}
+ return false}
+async function ghPut(p,b64,msg,retry=1){
+ if(GHPH())throw new Error('Repo GitHub belum diatur. Klik tombol 🔑 Token GitHub, lalu isi Username dan Nama Repo.');
+ const u=`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${p}`,H=ghH();
+ const g=await fetch(u+'?ref='+encodeURIComponent(CFG.branch)+'&t='+Date.now(),{headers:H,cache:'no-store'});
+ if(g.status==404&&await fixBranch())return ghPut(p,b64,msg,retry);
+ if(!g.ok&&g.status!=404)throw new Error(ghMsg(g.status));
+ const sh=g.ok?(await g.json()).sha:undefined;
+ const r=await fetch(u,{method:'PUT',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({message:msg,branch:CFG.branch,content:b64,sha:sh})});
+ if(r.ok)return true;
+ if((r.status==409||r.status==422)&&retry>0)return ghPut(p,b64,msg,retry-1);
+ let d='';try{d=(await r.json()).message||''}catch(e){}
+ throw new Error(ghMsg(r.status)+(d?' ['+d+']':''));
 }
+async function ghTest(){
+ if(GHPH())throw new Error('Username dan Nama Repo wajib diisi.');
+ const r=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}`,{headers:ghH(),cache:'no-store'});
+ if(!r.ok)throw new Error(ghMsg(r.status));
+ const d=await r.json();
+ if(d.permissions&&d.permissions.push===false)throw new Error('Token hanya bisa membaca repo. Beri izin "Contents: Read and write".');
+ const b=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/branches/${encodeURIComponent(CFG.branch)}`,{headers:ghH(),cache:'no-store'});
+ if(b.status==404&&d.default_branch){CFG.branch=d.default_branch}
+ saveCfg();
+}
+const errTxt=e=>e instanceof TypeError?'Tidak bisa terhubung ke GitHub (cek koneksi internet).':(e&&e.message)||'Terjadi kesalahan.';
 async function push(manual){
- if(!TOKEN){if(manual)alert('Masukkan Token GitHub saat login (khusus Admin/Owner) untuk sinkronisasi.');$('sync').textContent='Tersimpan lokal (belum sinkron GitHub)';return}
+ if(!TOKEN){if(manual)alert('Masukkan Token GitHub (tombol 🔑 Token GitHub) untuk sinkronisasi.');$('sync').textContent='Tersimpan lokal (belum sinkron GitHub)';return}
  try{$('sync').textContent='Menyinkronkan...';
-  for(const k in DB.lokasi)for(const r of DB.lokasi[k])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';if(!await ghPut(p,f.src.split(',')[1],'Foto '+f.id))throw 0;f.src=p}
-  const ok=await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data oleh '+ME.u);
-  if(ok){DB._dirty=false;DB._pend=[];DB._usr=false;idb('put',DB)}
-  $('sync').textContent=ok?'Tersinkron ke GitHub ✓':'Gagal sinkron ('+'cek token/repo)';
- }catch(e){$('sync').textContent='Gagal sinkron (cek token/jaringan)'}
+  for(const k in DB.lokasi)for(const r of DB.lokasi[k])for(const f of r.foto||[])if(f.src.startsWith('data:')){const p='foto/'+f.id+'.jpg';await ghPut(p,f.src.split(',')[1],'Foto '+f.id);f.src=p}
+  await ghPut(CFG.path,btoa(unescape(encodeURIComponent(JSON.stringify(DB)))),'Update data oleh '+ME.u);
+  DB._dirty=false;DB._pend=[];DB._usr=false;idb('put',DB);
+  $('sync').textContent='Tersinkron ke GitHub ✓';
+ }catch(e){const m=errTxt(e);$('sync').textContent='Gagal sinkron: '+m;if(manual)alert('Gagal sinkron ke GitHub.\n\n'+m)}
 }
 function commit(){DB._dirty=true;idb('put',DB).catch(()=>{});push(false)}
 
@@ -271,10 +301,25 @@ function enter(a,fresh){ME=a;$('wt').textContent='Halo, '+a.nama+' 👋';$('le')
 }
 function logout(){log('Logout');ME=null;TOKEN='';sessionStorage.removeItem('ksp_sess');sessionStorage.removeItem('ksp_tk');$('lp').value='';closeM();$('app').classList.add('hide');$('login').classList.remove('hide');pubRender()}
 function tokUI(){
- $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:440px"><h3 style="margin-top:0">Token GitHub</h3><small>Diperlukan untuk menyimpan data dan foto ke repo GitHub. ${TOKEN?'Token aktif.':'Belum ada token.'}</small>
- <label>Token</label><input id="tk" type="password" placeholder="github_pat_..." autocomplete="off">
+ const ph=v=>/^GANTI_/.test(v)?'':esc(v);
+ $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:520px"><h3 style="margin-top:0">Token GitHub &amp; Repo</h3><small>Diperlukan untuk menyimpan data dan foto ke repo GitHub. ${TOKEN?'Token aktif.':'Belum ada token.'} Token harus punya izin <b>Contents: Read and write</b> pada repo ini.</small>
+ <label>Token</label><input id="tk" type="password" placeholder="${TOKEN?'(biarkan kosong untuk memakai token aktif)':'github_pat_...'}" autocomplete="off">
+ <label>Username GitHub (pemilik repo)</label><input id="co" value="${ph(CFG.owner)}" placeholder="mis. bnpp-ri" autocomplete="off">
+ <label>Nama Repo</label><input id="cr" value="${ph(CFG.repo)}" placeholder="mis. kebutuhan-sarpras" autocomplete="off">
+ <label>Branch</label><input id="cb" value="${esc(CFG.branch)}" placeholder="main" autocomplete="off">
  <label style="display:flex;gap:6px;align-items:center"><input id="tr" type="checkbox" style="width:auto"> Ingat token di perangkat ini</label>
- <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">${TOKEN?'<button class="btn red" onclick="setTok(\'\')">Hapus token</button>':''}<button class="btn sec" onclick="closeM()">Lewati</button><button class="btn" onclick="setTok($(\'tk\').value.trim())">Simpan</button></div></div></div>`;
+ <div id="tm" class="foot" style="min-height:22px;margin-top:10px"></div>
+ <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">${TOKEN?'<button class="btn red" onclick="setTok(\'\')">Hapus token</button>':''}<button class="btn sec" onclick="closeM()">Tutup</button><button class="btn" onclick="saveTok()">Simpan &amp; Tes</button></div></div></div>`;
+}
+async function saveTok(){
+ const v=$('tk').value.trim()||TOKEN;
+ CFG.owner=$('co').value.trim();CFG.repo=$('cr').value.trim().replace(/\.git$/,'');CFG.branch=$('cb').value.trim()||'main';
+ if(!v){$('tm').textContent='✗ Token belum diisi.';return}
+ TOKEN=v;$('tm').textContent='Menguji koneksi ke GitHub...';
+ try{await ghTest()}catch(e){$('tm').textContent='✗ '+errTxt(e);return}
+ sessionStorage.setItem('ksp_tk',v);try{if($('tr').checked)localStorage.setItem('ksp_tok',v);else localStorage.removeItem('ksp_tok')}catch(e){}
+ closeM();$('sync').textContent='Token GitHub aktif';
+ log('Token GitHub diatur','',true);
 }
 function setTok(v){
  TOKEN=v;v?sessionStorage.setItem('ksp_tk',v):sessionStorage.removeItem('ksp_tk');if(v&&$('tr')&&$('tr').checked)localStorage.setItem('ksp_tok',v);else localStorage.removeItem('ksp_tok');
