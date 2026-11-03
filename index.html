@@ -7,6 +7,8 @@
 <title>Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -139,6 +141,11 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 @media(max-width:800px){.eb{font-size:19px}.wl h2{font-size:20px}.ht small{font-size:18px}.ht h1{font-size:14px}}
 #sync{display:block;max-width:330px;margin-left:auto;line-height:1.3;font-size:13px;margin-top:2px}
 .ht{flex:1 1 520px}
+.dz{display:block;border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;cursor:pointer;color:var(--mut);margin-top:6px;transition:.15s}.dz:hover,.dz.on{border-color:var(--pri);color:var(--pri);background:#ffffff14}.dz.big{padding:26px;font-size:16px}
+.pdfc{display:flex;flex-direction:column;align-items:center;justify-content:center;width:110px;height:72px;border-radius:8px;background:#fff;color:#b8201b;font-size:22px;padding:4px}.pdfc small{font-size:10px;color:#333;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ck{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;flex:0 0 auto!important;min-width:0!important;color:var(--tx)}.ck input{width:auto}
+.busy{position:fixed;inset:0;z-index:60;background:#000a;color:#fff;display:none;align-items:center;justify-content:center;font-size:20px;text-align:center;padding:20px}
+.impt td,.impt th{font-size:13px;padding:6px 8px}.okc{color:#8dffb0}.erc{color:#ffb4b4}.imp label.r{display:flex;gap:8px;align-items:flex-start;margin:8px 0;cursor:pointer}.imp label.r input{width:auto;margin-top:4px}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -175,11 +182,11 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
    <select id="fp" onchange="fillKab();render()"></select><select id="fk" onchange="render()"></select>
    <select id="fs" onchange="render()"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select>
    <input id="fq" placeholder="Cari kecamatan..." oninput="render()">
-   <button class="btn sm" onclick="exXlsx()">Unduh Excel</button><button class="btn sm" onclick="exPdf()">Unduh PDF</button>
+   <button class="btn sm" onclick="impUI()">📥 Impor Excel</button><button class="btn sm" onclick="exXlsx()">Unduh Excel</button><button class="btn sm" onclick="exPdf()">Unduh PDF</button><label class="ck"><input type="checkbox" id="wf" checked> Sertakan foto &amp; lampiran</label>
    <button class="btn sec sm" id="bu" onclick="usersUI()">Kelola Akun</button>
    <button class="btn sec sm" id="bg" onclick="refreshAll(true)">Muat Ulang Data</button>
   </div>
-  <div class="tw"><table><thead><tr><th rowspan="2">No</th><th rowspan="2">Provinsi</th><th rowspan="2">Kabupaten/Kota</th><th rowspan="2">Nama Kecamatan</th><th rowspan="2">Lokasi</th><th colspan="8" class="c">KEBUTUHAN SARANA PRASARANA DASAR</th><th rowspan="2">Foto</th><th rowspan="2">Status</th><th rowspan="2"></th></tr><tr><th>Akses Jalan</th><th>Air Bersih / Air Minum</th><th>Jembatan</th><th>Telekomunikasi</th><th>Fasilitas Pendidikan</th><th>Fasilitas Kesehatan</th><th>Listrik</th><th>Kebutuhan Lainnya</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="tw"><table><thead><tr><th rowspan="2">No</th><th rowspan="2">Provinsi</th><th rowspan="2">Kabupaten/Kota</th><th rowspan="2">Nama Kecamatan</th><th rowspan="2">Lokasi</th><th colspan="8" class="c">KEBUTUHAN SARANA PRASARANA DASAR</th><th rowspan="2">Lampiran</th><th rowspan="2">Status</th><th rowspan="2"></th></tr><tr><th>Akses Jalan</th><th>Air Bersih / Air Minum</th><th>Jembatan</th><th>Telekomunikasi</th><th>Fasilitas Pendidikan</th><th>Fasilitas Kesehatan</th><th>Listrik</th><th>Kebutuhan Lainnya</th></tr></thead><tbody id="tb"></tbody></table></div>
   <div class="foot" id="cnt"></div>
  </main>
 </section>
@@ -293,29 +300,42 @@ function filt(x='f',Ls){const p=$(x+'p').value,k=$(x+'k').value,s=$(x+'s').value
  return (Ls||mine()).filter(v=>(!p||v.prov==p)&&(!k||v.kab==k)&&(s===''||((DB.lokasi[v.id]||[]).length>0)==(s=='1'))&&(!q||v.kec.toLowerCase().includes(q)))}
 const LK=x=>DB.lokasi[x.id]||[];
 function statsHTML(all,pub){const done=all.filter(x=>LK(x).length).length,tl=all.reduce((a,x)=>a+LK(x).length,0),tf=all.reduce((a,x)=>a+LK(x).reduce((b,r)=>b+(r.foto||[]).length,0),0);
- return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi','📍'],...(pub?[]:[[tf,'Foto data dukung','📷']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
+ return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi','📍'],...(pub?[]:[[tf,'Lampiran data dukung','📎']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
 function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x);(rs.length?rs:[null]).forEach((r,j)=>{
- h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td>${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
+ h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td>${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📎 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
 function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(f,true);$('cnt').textContent=`Menampilkan ${f.length} dari ${all.length} kecamatan`}
 function pubRender(){const f=filt('x',KEC);$('pst').innerHTML=statsHTML(KEC,true);$('pb').innerHTML=rowsHTML(f,false);$('pc').textContent=`Menampilkan ${f.length} dari ${KEC.length} kecamatan`}
 function pubInit(){$('hl').src=document.querySelector('.hero img').src;$('xp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(KEC.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
  $('pt').innerHTML=document.querySelector('#app thead').outerHTML.replace('<th rowspan="2">Foto</th>','').replace('<th rowspan="2"></th></tr>','</tr>')+'<tbody id="pb"></tbody>';pubRender()}
-async function gal(id,j){const r=DB.lokasi[id][j];await signPaths(r.foto.map(f=>f.path));$('md').innerHTML=`<div class="modal" onclick="closeM()"><div class="mb"><h3 style="margin-top:0">Foto data dukung — ${esc(KEC[id-1].kec)}, ${esc(r.pulau)}</h3>${r.foto.map(f=>`<img src="${esc(SIGN[f.path]||'')}" style="max-width:100%;border-radius:8px;margin:6px 0;display:block">`).join('')}</div></div>`}
+async function gal(id,j){const r=DB.lokasi[id][j];await signPaths(r.foto.map(f=>f.path));$('md').innerHTML=`<div class="modal" onclick="closeM()"><div class="mb"><h3 style="margin-top:0">Lampiran data dukung — ${esc(KEC[id-1].kec)}, ${esc(r.pulau)}</h3>${r.foto.map(f=>f.t=='pdf'?`<a class="btn sec sm" style="display:inline-block;margin:6px 6px 6px 0" href="${esc(SIGN[f.path]||'#')}" target="_blank" rel="noopener">📄 ${esc(f.n||'dokumen.pdf')}</a>`:`<img src="${esc(SIGN[f.path]||'')}" style="max-width:100%;border-radius:8px;margin:6px 0;display:block">`).join('')}</div></div>`}
 async function edit(id){EID=id;W=JSON.parse(JSON.stringify(DB.lokasi[id]||[]));if(!W.length)W=[blank()];
  await signPaths(W.flatMap(r=>(r.foto||[]).map(f=>f.path)));
  W.forEach(r=>(r.foto=r.foto||[]).forEach(f=>{if(f.path)f.src=SIGN[f.path]||''}));draw()}
 function draw(){
  const sc=(document.querySelector('.mb')||{}).scrollTop||0,k=KEC[EID-1];
- $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">${esc(k.kec)} — ${esc(k.kab)}, ${esc(k.prov)}</h3><small>${k.dl} · ${k.pk}. Isi lokasi dan kebutuhan sarana prasarana dasar; tambahkan foto sebagai data dukung.</small><div style="margin-top:12px">
+ $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">${esc(k.kec)} — ${esc(k.kab)}, ${esc(k.prov)}</h3><small>${k.dl} · ${k.pk}. Isi lokasi dan kebutuhan sarana prasarana dasar; tambahkan foto atau PDF sebagai data dukung.</small><div style="margin-top:12px">
  ${W.map((r,i)=>`<div class="card"><div style="display:flex;gap:8px;margin-bottom:8px"><input placeholder="Lokasi" value="${esc(r.pulau)}" oninput="W[${i}].pulau=this.value"><button class="btn red sm" style="white-space:nowrap" onclick="W.splice(${i},1);draw()">Hapus lokasi</button></div>
  <div class="grid8">${KB.map(b=>`<div><label style="margin:0 0 3px;font-size:15px">${b[1]}</label><textarea rows="2" oninput="W[${i}].${b[0]}=this.value">${esc(r[b[0]])}</textarea></div>`).join('')}</div>
- <div style="margin-top:8px"><label>Foto data dukung (maks. 6)</label>${r.foto.map((f,j)=>`<span class="th"><img src="${esc(f.src)}"><button class="btn red sm" onclick="W[${i}].foto.splice(${j},1);draw()">✕</button></span>`).join('')}<input type="file" accept="image/*" multiple onchange="addPh(${i},this.files)"></div></div>`).join('')}</div>
+ <div style="margin-top:8px"><label>Foto &amp; dokumen PDF data dukung (maks. 8 file)</label>${r.foto.map((f,j)=>`<span class="th">${f.t=='pdf'?`<span class="pdfc">📄<small>${esc(f.n||'dokumen.pdf')}</small></span>`:`<img src="${esc(f.src)}">`}<button class="btn red sm" onclick="W[${i}].foto.splice(${j},1);draw()">✕</button></span>`).join('')}<label class="dz" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="event.preventDefault();this.classList.remove('on');addFiles(${i},event.dataTransfer.files)">📎 Seret &amp; lepas foto / PDF di sini, atau klik untuk memilih<input type="file" accept="image/*,application/pdf" multiple hidden onchange="addFiles(${i},this.files)"></label></div></div>`).join('')}</div>
  <button class="btn sec sm" onclick="W.push(blank());draw()">+ Tambah lokasi</button>
  <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button class="btn sec" onclick="closeM()">Batal</button><button class="btn" onclick="saveRows()">Simpan</button></div></div></div>`;
  document.querySelector('.mb').scrollTop=sc;
 }
 function shrink(file){return new Promise(ok=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.7))};im.onerror=()=>ok(null);im.src=fr.result};fr.readAsDataURL(file)})}
-async function addPh(i,files){for(const f of [...files]){if(W[i].foto.length>=6){alert('Maksimal 6 foto per lokasi.');break}const s=await shrink(f);if(s)W[i].foto.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),n:f.name,src:s})}draw()}
+const MAXF=8,MAXPDF=5*1024*1024;
+const rd=f=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)});
+async function addFiles(i,files){
+ const bad=[];
+ for(const f of [...files]){
+  if(W[i].foto.length>=MAXF){bad.push('Maksimal '+MAXF+' file per lokasi.');break}
+  const id='f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  if(f.type=='application/pdf'||/\.pdf$/i.test(f.name)){
+   if(f.size>MAXPDF){bad.push(f.name+': ukuran PDF lebih dari 5 MB.');continue}
+   W[i].foto.push({id,n:f.name,t:'pdf',src:await rd(f)})}
+  else if((f.type||'').startsWith('image/')){const d=await shrink(f);if(d)W[i].foto.push({id,n:f.name,t:'img',src:d});else bad.push(f.name+': gambar tidak dapat dibaca.')}
+  else bad.push(f.name+': hanya foto atau PDF yang diterima.')}
+ if(bad.length)alert(bad.join('\n'));draw()}
+addEventListener('dragover',e=>e.preventDefault());addEventListener('drop',e=>e.preventDefault());
 async function saveRows(){
  const bt=document.querySelector('.mb .btn:not(.sec)');if(bt){bt.disabled=true;bt.textContent='Menyimpan...'}
  try{
@@ -325,41 +345,183 @@ async function saveRows(){
    const fo=[];
    for(const f of r.foto){
     if(f.src&&f.src.startsWith('data:')){
-     const blob=await(await fetch(f.src)).blob(),path=`${EID}/${f.id}.jpg`;
-     const{error}=await sb.storage.from('foto').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(error)throw error;
-     fo.push({id:f.id,n:f.n||'',path})}
-    else fo.push({id:f.id,n:f.n||'',path:f.path})}
+     const pdf=f.t=='pdf',blob=await(await fetch(f.src)).blob(),path=`${EID}/${f.id}.${pdf?'pdf':'jpg'}`;
+     const{error}=await sb.storage.from('foto').upload(path,blob,{contentType:pdf?'application/pdf':'image/jpeg',upsert:true});if(error)throw error;
+     fo.push({id:f.id,n:f.n||'',t:pdf?'pdf':'img',path})}
+    else fo.push({id:f.id,n:f.n||'',t:f.t||(/\.pdf$/i.test(f.path||'')?'pdf':'img'),path:f.path})}
    const o={pulau:r.pulau.trim(),foto:fo};KB.forEach(b=>o[b[0]]=(r[b[0]]||'').trim());arr.push(o)}
   const{error}=await sb.from('kecamatan_data').upsert({kec_id:EID,data:arr,updated_by:ME.id,updated_at:new Date().toISOString()});if(error)throw error;
   const keep=new Set(arr.flatMap(r=>r.foto.map(f=>f.path))),old=(DB.lokasi[EID]||[]).flatMap(r=>(r.foto||[]).map(f=>f.path)).filter(p=>p&&!keep.has(p));
   if(old.length)try{await sb.storage.from('foto').remove(old)}catch(e){}
   DB.lokasi[EID]=arr;closeM();
-  log('Ubah data kecamatan',`${KEC[EID-1].kec}, ${KEC[EID-1].kab} — ${arr.length} lokasi, ${arr.reduce((a,r)=>a+r.foto.length,0)} foto`);
+  log('Ubah data kecamatan',`${KEC[EID-1].kec}, ${KEC[EID-1].kab} — ${arr.length} lokasi, ${arr.reduce((a,r)=>a+r.foto.length,0)} lampiran`);
   render();$('sync').textContent='Tersimpan di server ✓ '+hhmm();
  }catch(e){if(bt){bt.disabled=false;bt.textContent='Simpan'}alert('Gagal menyimpan ke server.\n\n'+errTxt(e)+'\n\nData di formulir belum hilang, coba simpan lagi.')}
 }
 const closeM=()=>$('md').innerHTML='';
 
 /* ===== Ekspor (kolom mengikuti template Excel) ===== */
+const busy=m=>{let e=$('busy');if(!e){e=document.createElement('div');e.id='busy';e.className='busy';document.body.appendChild(e)}e.textContent=m;e.style.display=m?'flex':'none'};
+const wantFoto=()=>$('wf')&&$('wf').checked;
+const isPdf=f=>f.t=='pdf'||/\.pdf$/i.test(f.path||'');
+const items=()=>filt().flatMap(k=>{const rs=DB.lokasi[k.id]||[];return(rs.length?rs:[{}]).map(r=>({k,r}))});
+const IMG={};
+async function getImg(p){
+ if(IMG[p])return IMG[p];
+ try{const res=await fetch(SIGN[p]);if(!res.ok)return null;const blob=await res.blob(),du=await rd(blob);
+  const dim=await new Promise(ok=>{const im=new Image();im.onload=()=>ok([im.naturalWidth,im.naturalHeight]);im.onerror=()=>ok([4,3]);im.src=du});
+  return IMG[p]={blob,du,w:dim[0],h:dim[1]}}catch(e){return null}}
+async function prefetch(ps){const q=[...new Set(ps)],tot=q.length;let n=0;
+ const w=async()=>{while(q.length){await getImg(q.shift());busy(`Menyiapkan foto... ${++n} / ${tot}`)}};await Promise.all([w(),w(),w(),w(),w()])}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
 const H1=['No','Provinsi','Kabupaten/Kota','Nama Kecamatan','Lokasi'],SUB=KB.map(b=>b[1]);
-function flat(){const o=[];filt().forEach(k=>{const rs=DB.lokasi[k.id]||[];(rs.length?rs:[{}]).forEach(r=>o.push([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),(r.foto||[]).length||'']))});return o}
-function exXlsx(){
- log('Unduh Excel',flat().length+' baris');
- const ws=XLSX.utils.aoa_to_sheet([[...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Jumlah Foto'],[...Array(5).fill(''),...SUB,''],...flat()]);
+function flat(){const o=[];items().forEach(({k,r})=>o.push([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),(r.foto||[]).length||'']));return o}
+
+/* Excel: tabel + sheet "Foto Data Dukung" berisi gambar */
+async function exXlsx(){
+ const its=items(),withF=wantFoto();log('Unduh Excel',its.length+' baris'+(withF?' + lampiran':''));
+ if(!window.ExcelJS){alert('Pustaka Excel dengan foto belum termuat (periksa internet). Mengunduh versi tanpa gambar.');return exXlsxBasic()}
+ busy('Menyiapkan Excel...');
+ try{
+  const atts=its.flatMap(({r})=>r.foto||[]);
+  if(withF&&atts.length){await signPaths(atts.map(f=>f.path));await prefetch(atts.filter(f=>!isPdf(f)).map(f=>f.path))}
+  busy('Menyusun file Excel...');
+  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('SARANA KEBUTUHAN DASAR',{views:[{state:'frozen',ySplit:2}]}),ph=withF?wb.addWorksheet('Foto Data Dukung'):null;
+  const bd={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+  ws.columns=[{width:6},{width:20},{width:22},{width:24},{width:24},...SUB.map(()=>({width:30})),{width:14}];
+  const h1=ws.addRow([...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Lampiran']),h2=ws.addRow([...Array(5).fill(''),...SUB,'']);
+  [0,1,2,3,4,13].forEach(c=>ws.mergeCells(1,c+1,2,c+1));ws.mergeCells(1,6,1,13);
+  [h1,h2].forEach(h=>{h.height=26;h.eachCell({includeEmpty:true},c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0A3F96'}};c.alignment={vertical:'middle',horizontal:'center',wrapText:true};c.border=bd})});
+  if(ph){ph.columns=Array(MAXF).fill({width:31})}
+  for(const{k,r}of its){
+   const fs=r.foto||[],row=ws.addRow([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),fs.length||'']);
+   row.eachCell({includeEmpty:true},c=>{c.alignment={vertical:'top',wrapText:true};c.border=bd});
+   if(ph&&fs.length){
+    const t=ph.addRow([`${k.kec}, ${k.kab}, ${k.prov} — ${r.pulau||'-'}`]);ph.mergeCells(t.number,1,t.number,MAXF);t.getCell(1).font={bold:true};t.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDCE8FB'}};
+    const imgs=fs.filter(f=>!isPdf(f)&&IMG[f.path]),pr=ph.addRow([]);
+    if(imgs.length){pr.height=118;
+     for(let i=0;i<imgs.length;i++){const im=IMG[imgs[i].path],sc=Math.min(200/im.w,150/im.h),id=wb.addImage({buffer:await im.blob.arrayBuffer(),extension:'jpeg'});
+      ph.addImage(id,{tl:{col:i+0.05,row:pr.number-1+0.05},ext:{width:Math.round(im.w*sc),height:Math.round(im.h*sc)}})}}
+    const pf=fs.filter(isPdf);if(pf.length){const q=ph.addRow(['Dokumen PDF: '+pf.map(f=>f.n||'dokumen.pdf').join(', ')+' (buka lewat aplikasi atau unduh PDF gabungan)']);ph.mergeCells(q.number,1,q.number,MAXF)}
+    ph.addRow([]);
+    row.getCell(14).value={text:fs.length+' file',hyperlink:`#'Foto Data Dukung'!A${t.number}`};row.getCell(14).font={color:{argb:'FF0563C1'},underline:true};
+   }}
+  const buf=await wb.xlsx.writeBuffer();
+  dl(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Kebutuhan_Sarpras_Perbatasan.xlsx');
+ }catch(e){alert('Gagal membuat Excel: '+errTxt(e))}finally{busy('')}
+}
+function exXlsxBasic(){
+ const ws=XLSX.utils.aoa_to_sheet([[...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Lampiran'],[...Array(5).fill(''),...SUB,''],...flat()]);
  ws['!merges']=[{s:{r:0,c:5},e:{r:0,c:12}},...[0,1,2,3,4,13].map(c=>({s:{r:0,c},e:{r:1,c}}))];ws['!cols']=[{wch:5},{wch:18},{wch:20},{wch:22},{wch:22},...SUB.map(()=>({wch:26})),{wch:12}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'SARANA KEBUTUHAN DASAR');XLSX.writeFile(wb,'Kebutuhan_Sarpras_Perbatasan.xlsx');
 }
-async function toData(s){if(!s)return null;if(s.startsWith('data:'))return s;return new Promise(ok=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);ok(c.toDataURL('image/jpeg',.8))};im.onerror=()=>ok(null);im.src=s})}
+
+/* PDF: tabel + halaman foto + dokumen PDF lampiran digabung di akhir */
 async function exPdf(){
- log('Unduh PDF',flat().length+' baris');
- await signPaths(filt().flatMap(k=>(DB.lokasi[k.id]||[]).flatMap(r=>(r.foto||[]).map(f=>f.path))));
- const d=new jspdf.jsPDF({orientation:'landscape'});d.setFontSize(13);d.text('Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan',14,14);
- d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Foto',rowSpan:2}],SUB],body:flat(),startY:20,styles:{fontSize:6.5},headStyles:{fillColor:[15,81,149]}});
- for(const k of filt())for(const r of (DB.lokasi[k.id]||[]).filter(r=>(r.foto||[]).length)){
-  d.addPage();d.setFontSize(11);d.text(`Lampiran Foto: ${k.kec}, ${k.kab} — ${r.pulau||'-'}`,14,14);let i=0;
-  for(const f of r.foto){const u=await toData(SIGN[f.path]||'');if(!u)continue;d.addImage(u,'JPEG',14+(i%3)*92,22+Math.floor(i/3)*70,88,64);i++}
- }
- d.save('Kebutuhan_Sarpras_Perbatasan.pdf');
+ const its=items(),withF=wantFoto();log('Unduh PDF',its.length+' baris'+(withF?' + lampiran':''));
+ busy('Menyiapkan PDF...');
+ try{
+  const atts=its.flatMap(({r})=>r.foto||[]);
+  if(withF&&atts.length){await signPaths(atts.map(f=>f.path));await prefetch(atts.filter(f=>!isPdf(f)).map(f=>f.path))}
+  busy('Menyusun file PDF...');
+  const d=new jspdf.jsPDF({orientation:'landscape'});d.setFontSize(13);d.text('Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan',14,14);
+  d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Lampiran',rowSpan:2}],SUB],body:flat(),startY:20,styles:{fontSize:6.5},headStyles:{fillColor:[15,81,149]}});
+  const pdfs=[];
+  if(withF)for(const{k,r}of its){const fs=r.foto||[];if(!fs.length)continue;
+   d.addPage();d.setFontSize(11);d.text(`Lampiran: ${k.kec}, ${k.kab} — ${r.pulau||'-'}`,14,14);
+   let i=0;for(const f of fs.filter(f=>!isPdf(f))){const im=IMG[f.path];if(!im)continue;const sc=Math.min(88/im.w,64/im.h);d.addImage(im.du,'JPEG',14+(i%3)*92,22+Math.floor(i/3)*70,im.w*sc,im.h*sc);i++}
+   const pf=fs.filter(isPdf);if(pf.length){d.setFontSize(9);d.text('Dokumen PDF terlampir (digabung di halaman akhir): '+pf.map(f=>f.n||'dokumen.pdf').join(', '),14,22+Math.ceil(i/3)*70+6);pf.forEach(f=>pdfs.push({k,r,f}))}}
+  let out=d.output('blob');
+  if(pdfs.length&&window.PDFLib){
+   try{busy('Menggabungkan dokumen PDF...');
+    const doc=await PDFLib.PDFDocument.load(await out.arrayBuffer()),font=await doc.embedFont(PDFLib.StandardFonts.Helvetica),asc=t=>String(t).replace(/[^\x20-\x7E]/g,'?');
+    for(const{k,r,f}of pdfs){try{
+      const res=await fetch(SIGN[f.path]);if(!res.ok)continue;const src=await PDFLib.PDFDocument.load(await res.arrayBuffer(),{ignoreEncryption:true});
+      const pg=doc.addPage([842,595]);pg.drawText(asc('Lampiran PDF: '+(f.n||'dokumen.pdf')),{x:40,y:540,size:16,font});pg.drawText(asc(`${k.kec}, ${k.kab}, ${k.prov} - ${r.pulau||'-'}`),{x:40,y:515,size:11,font});
+      (await doc.copyPages(src,src.getPageIndices())).forEach(p=>doc.addPage(p))}catch(e){console.error(e)}}
+    out=new Blob([await doc.save()],{type:'application/pdf'})}catch(e){console.error(e);alert('Dokumen PDF lampiran tidak dapat digabung; PDF diunduh tanpa lampiran PDF.')}}
+  dl(out,'Kebutuhan_Sarpras_Perbatasan.pdf');
+ }catch(e){alert('Gagal membuat PDF: '+errTxt(e))}finally{busy('')}
+}
+
+/* ===== Impor dari Excel / CSV ===== */
+const FM=[['kec',/kecamatan/],['prov',/provinsi/],['kab',/kabupaten|kota/],['pulau',/lokasi|pulau/],['jalan',/jalan/],['air',/\bair\b/],['jembatan',/jembatan/],['telko',/telekom/],['pend',/pendidikan/],['kes',/kesehatan/],['listrik',/listrik/],['lain',/lainnya|lain-lain|\blain\b/]];
+const NEEDRX=/jalan|\bair\b|jembatan|telekom|pendidikan|kesehatan|listrik|lain/;
+const nz=s=>String(s??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\bkecamatan\b|\bkec\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+const nzk=s=>nz(s).replace(/\b(kabupaten|kab|kota)\b/g,' ').replace(/\s+/g,' ').trim();
+let IMP=null;
+function impUI(){
+ IMP=null;
+ $('md').innerHTML=`<div class="modal"><div class="mb imp"><h3 style="margin-top:0">Impor Data dari Excel / CSV</h3>
+ <small>Format kolom: <b>Nama Kecamatan</b>, <b>Lokasi (Pulau)</b>, lalu 8 kolom kebutuhan (Akses Jalan, Air Bersih/Air Minum, Jembatan, Telekomunikasi, Fasilitas Pendidikan, Fasilitas Kesehatan, Listrik, Kebutuhan Lainnya). Kolom Provinsi dan Kabupaten/Kota bersifat opsional tetapi membantu bila ada nama kecamatan yang sama. Beberapa pulau dalam satu kecamatan = beberapa baris. Foto dan PDF diunggah lewat tombol "Isi Data" pada tiap kecamatan.</small>
+ <label class="dz big" style="margin-top:12px" ondragover="event.preventDefault();this.classList.add('on')" ondragleave="this.classList.remove('on')" ondrop="event.preventDefault();this.classList.remove('on');impFile(event.dataTransfer.files[0])">📥 Seret &amp; lepas file di sini, atau klik untuk memilih<br><small>.xlsx · .xls · .csv · .ods</small><input type="file" accept=".xlsx,.xls,.xlsm,.csv,.tsv,.ods,.txt" hidden onchange="impFile(this.files[0])"></label>
+ <div id="impr" style="margin-top:12px"></div>
+ <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" onclick="exTemplate()">Unduh Template Isian</button><button class="btn sec" onclick="closeM()">Tutup</button><button class="btn hide" id="impgo" onclick="doImport()">Impor</button></div></div></div>`;
+}
+function exTemplate(){
+ if(!window.XLSX)return alert('Pustaka Excel belum termuat.');
+ const rows=mine().map(k=>[k.id,k.prov,k.kab,k.kec,'',...KB.map(()=>''),'']);
+ const ws=XLSX.utils.aoa_to_sheet([[...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Lampiran'],[...Array(5).fill(''),...SUB,''],...rows]);
+ ws['!merges']=[{s:{r:0,c:5},e:{r:0,c:12}},...[0,1,2,3,4,13].map(c=>({s:{r:0,c},e:{r:1,c}}))];ws['!cols']=[{wch:5},{wch:18},{wch:20},{wch:24},{wch:24},...SUB.map(()=>({wch:26})),{wch:10}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'SARANA KEBUTUHAN DASAR');XLSX.writeFile(wb,'Template_Isian_Kebutuhan_Sarpras.xlsx');
+}
+function parseSheet(rows){
+ let hr=-1;for(let i=0;i<Math.min(rows.length,20);i++)if((rows[i]||[]).some(c=>/kecamatan/i.test(String(c)))){hr=i;break}
+ if(hr<0)return null;
+ const H1r=rows[hr]||[],H2r=rows[hr+1]||[],cnt=a=>a.filter(c=>NEEDRX.test(String(c).toLowerCase())).length,two=cnt(H2r)>=2&&cnt(H1r)<2;
+ const n=Math.max(H1r.length,H2r.length),map={},used=new Set();
+ for(let c=0;c<n;c++){const t=String((two?(H2r[c]||H1r[c]):H1r[c])||'').toLowerCase().trim();if(!t||/jumlah|lampiran|foto/.test(t))continue;
+  const f=FM.find(([k,rx])=>!used.has(k)&&rx.test(t));if(f){map[f[0]]=c;used.add(f[0])}}
+ if(map.kec==null)return null;
+ return{map,start:hr+(two?2:1)};
+}
+async function impFile(f){
+ if(!f)return;if(!window.XLSX)return alert('Pustaka Excel belum termuat (periksa koneksi internet).');
+ $('impr').innerHTML='Membaca file...';
+ try{
+  const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});let P=null,rows=null;
+  for(const sn of wb.SheetNames){const r=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false});const p=parseSheet(r);if(p){P=p;rows=r;break}}
+  if(!P){$('impr').innerHTML='<span class="erc">Kolom "Nama Kecamatan" tidak ditemukan. Gunakan tombol "Unduh Template Isian".</span>';return}
+  const idx=new Map();KEC.forEach(k=>{const key=nz(k.kec);(idx.get(key)||idx.set(key,[]).get(key)).push(k)});
+  const mine_=new Set(mine().map(k=>k.id)),ok=[],err=[],g=(r,k)=>P.map[k]==null?'':String(r[P.map[k]]??'').trim();
+  let lk='',lp='',lb='',total=0;
+  for(let i=P.start;i<rows.length;i++){const r=rows[i];if(!r||r.every(c=>String(c).trim()===''))continue;
+   const o={pulau:g(r,'pulau')};KB.forEach(b=>o[b[0]]=g(r,b[0]));const has=o.pulau||KB.some(b=>o[b[0]]);
+   let kn=g(r,'kec'),pv=g(r,'prov'),kb=g(r,'kab');
+   if(kn){lk=kn;lp=pv;lb=kb}else if(has){kn=lk;pv=pv||lp;kb=kb||lb}
+   if(!has)continue;total++;
+   if(!kn){err.push(`Baris ${i+1}: nama kecamatan kosong`);continue}
+   let c=idx.get(nz(kn))||[];if(pv)c=c.filter(k=>nz(k.prov)==nz(pv));if(kb)c=c.filter(k=>nzk(k.kab)==nzk(kb));
+   if(c.length>1){const m=c.filter(k=>mine_.has(k.id));if(m.length)c=m}
+   if(!c.length){err.push(`Baris ${i+1}: kecamatan "${kn}" tidak ditemukan di daftar SK`);continue}
+   if(c.length>1){err.push(`Baris ${i+1}: "${kn}" ada di beberapa kabupaten; tambahkan kolom Provinsi / Kabupaten/Kota`);continue}
+   if(!mine_.has(c[0].id)){err.push(`Baris ${i+1}: "${kn}" di luar wilayah akun Anda`);continue}
+   ok.push({id:c[0].id,k:c[0],obj:o,line:i+1})}
+  IMP={ok,err,total,name:f.name};
+  const kc=new Set(ok.map(x=>x.id)).size;
+  $('impr').innerHTML=`<div><b>${esc(f.name)}</b>: ${total} baris isian terbaca → <span class="okc">${ok.length} siap diimpor</span> (${kc} kecamatan)${err.length?`, <span class="erc">${err.length} bermasalah</span>`:''}.</div>
+  ${ok.length?`<label class="r"><input type="radio" name="im" value="merge" checked><span><b>Gabungkan</b> dengan data yang sudah ada (lokasi dengan nama sama diperbarui, foto tetap)</span></label><label class="r"><input type="radio" name="im" value="replace"><span><b>Ganti</b> seluruh daftar lokasi pada kecamatan yang ada di file (lokasi lain beserta lampirannya dihapus)</span></label>
+  <div class="tw impt" style="max-height:30vh;margin-top:8px"><table><tr><th>Kecamatan</th><th>Kab/Kota</th><th>Lokasi</th><th>Akses Jalan</th><th>Air</th></tr>${ok.slice(0,8).map(x=>`<tr><td>${esc(x.k.kec)}</td><td>${esc(x.k.kab)}</td><td>${esc(x.obj.pulau)}</td><td>${esc(x.obj.jalan.slice(0,40))}</td><td>${esc(x.obj.air.slice(0,40))}</td></tr>`).join('')}</table></div>${ok.length>8?`<div class="foot">... dan ${ok.length-8} baris lainnya</div>`:''}`:''}
+  ${err.length?`<div class="erc" style="margin-top:8px;max-height:20vh;overflow:auto;font-size:13px">${err.slice(0,40).map(esc).join('<br>')}${err.length>40?'<br>...':''}</div>`:''}`;
+  $('impgo').classList.toggle('hide',!ok.length);$('impgo').textContent='Impor '+ok.length+' baris'
+ }catch(e){$('impr').innerHTML='<span class="erc">Gagal membaca file: '+esc(errTxt(e))+'</span>'}
+}
+async function doImport(){
+ if(!IMP||!IMP.ok.length)return;const mode=(document.querySelector('input[name=im]:checked')||{}).value||'merge';
+ const gr={};IMP.ok.forEach(x=>(gr[x.id]=gr[x.id]||[]).push(x.obj));
+ const rowsU=[],removed=[],next={};
+ for(const id in gr){const cur=(DB.lokasi[id]||[]).map(r=>({...r,foto:r.foto||[]}));let out;
+  if(mode=='replace'){out=gr[id].map(o=>{const p=cur.find(r=>nz(r.pulau)==nz(o.pulau));return{...o,foto:p?p.foto:[]}});
+   cur.forEach(r=>{if(!out.some(o=>o.foto===r.foto))r.foto.forEach(f=>removed.push(f.path))})}
+  else{out=cur;gr[id].forEach(o=>{const i=out.findIndex(r=>nz(r.pulau)==nz(o.pulau));if(i>=0){KB.forEach(b=>{if(o[b[0]])out[i][b[0]]=o[b[0]]})}else out.push({...o,foto:[]})})}
+  next[id]=out;rowsU.push({kec_id:+id,data:out,updated_by:ME.id,updated_at:new Date().toISOString()})}
+ const bt=$('impgo');bt.disabled=true;bt.textContent='Mengimpor...';
+ try{for(let i=0;i<rowsU.length;i+=40){const{error}=await sb.from('kecamatan_data').upsert(rowsU.slice(i,i+40));if(error)throw error}
+  if(removed.length)try{await sb.storage.from('foto').remove(removed)}catch(e){}
+  Object.assign(DB.lokasi,next);closeM();render();
+  log('Impor data',`${IMP.name}: ${IMP.ok.length} baris, ${rowsU.length} kecamatan (${mode=='replace'?'ganti':'gabung'})`);
+  $('sync').textContent='Impor tersimpan di server ✓ '+hhmm();alert(`Impor selesai: ${IMP.ok.length} baris pada ${rowsU.length} kecamatan.`)}
+ catch(e){bt.disabled=false;bt.textContent='Impor';alert('Gagal menyimpan hasil impor ke server.\n\n'+errTxt(e))}
 }
 
 /* ===== Kelola akun (lewat fungsi server admin-users) ===== */
