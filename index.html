@@ -215,7 +215,7 @@ for(const p in RAW)for(const k in RAW[p])RAW[p][k].split('/').forEach(g=>{const[
 
 
 /* ===== KONEKSI SERVER (Supabase) — isi dua nilai ini (kunci "anon/publishable" memang publik; data dilindungi aturan RLS di server) ===== */
-const SBCFG=(()=>{let c={url:'GANTI_SUPABASE_URL',key:'GANTI_SUPABASE_ANON_KEY'};try{const o=JSON.parse(localStorage.getItem('ksp_sb')||'null');if(o&&o.url&&o.key)c=o}catch(e){}return c})();
+const SBCFG=(()=>{let c={url:'https://jftllgietgpxidvniymv.supabase.co',key:'sb_publishable_3cWqw5MjzvA0PiWbOTtuiQ_it03vbIS'};try{const o=JSON.parse(localStorage.getItem('ksp_sb')||'null');if(o&&o.url&&o.key)c=o}catch(e){}return c})();
 const SB_OK=/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SBCFG.url)&&SBCFG.key.length>40;
 let sb=null;if(SB_OK&&window.supabase)sb=supabase.createClient(SBCFG.url.replace(/\/$/,''),SBCFG.key,{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let DB={lokasi:{}},ME=null;
