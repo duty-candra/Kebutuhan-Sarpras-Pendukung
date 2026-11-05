@@ -142,6 +142,7 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 #sync{display:block;max-width:330px;margin-left:auto;line-height:1.3;font-size:13px;margin-top:2px}
 .ht{flex:1 1 520px}
 .dz{border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;cursor:pointer;margin-top:6px;font-size:14px}.dz.on{border-color:var(--pri);background:#2f7de11f}.th .pdf{display:inline-block;padding:10px 30px 10px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
+.foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}.pgr{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.btn:disabled{opacity:.45;cursor:not-allowed}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -163,21 +164,21 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 </div>
 <div class="info"><h2 style="margin:0 0 4px">Informasi Data Kebutuhan Sarana Prasarana</h2><small style="color:var(--mut)">Tampilan ini hanya untuk informasi. Untuk mengisi atau mengubah data, silakan masuk dengan akun Anda.</small>
  <div class="stats" id="pst" style="margin-top:14px"></div>
- <div class="bar"><select id="xp" onchange="fillKab('x',KEC);pubRender()"></select><select id="xk" onchange="pubRender()"><option value="">Semua kabupaten/kota</option></select><select id="xs" onchange="pubRender()"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select><input id="xq" placeholder="Cari kecamatan..." oninput="pubRender()"></div>
+ <div class="bar"><select id="xp" onchange="fillKab('x',KEC);R('x')"></select><select id="xk" onchange="R('x')"><option value="">Semua kabupaten/kota</option></select><select id="xs" onchange="R('x')"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select><input id="xq" placeholder="Cari kecamatan..." oninput="R('x')"></div>
  <div class="tw"><table id="pt"></table></div><div class="foot" id="pc"></div></div>
 </section>
 
 <section id="app" class="hide">
  <header><img id="hl" width="44" height="44" alt="BADAN NASIONAL PENGELOLA PERBATASAN DAN DAERAH TERPENCIL-RI"><div class="ht"><small>BADAN NASIONAL PENGELOLA PERBATASAN DAN DAERAH TERPENCIL-RI</small><h1>Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan</h1></div>
   <div class="who"><div id="wh"></div><span id="sync"></span></div>
-  <div class="hb"><button class="hbtn" id="bl" onclick="logUI()">📋 Log Aktivitas</button><button class="hbtn" onclick="logout()">Keluar</button></div></header>
+  <div class="hb"><button class="hbtn" onclick="roleUI()">🔐 Hak Akses</button><button class="hbtn" id="bl" onclick="logUI()">📋 Log Aktivitas</button><button class="hbtn" onclick="logout()">Keluar</button></div></header>
  <main>
   <div class="welcome"><div class="wl"><h2 id="wt">Selamat datang</h2><p>Pantau dan lengkapi data kebutuhan sarana prasarana layanan dasar di kawasan perbatasan.</p></div><div class="ring" id="rg" style="--p:0"><div><b id="pp">0%</b><small>terisi</small></div></div><div class="wr"><b id="pn">0</b><span>kecamatan sudah diisi</span></div></div>
   <div class="stats" id="stats"></div>
   <div class="bar">
-   <select id="fp" onchange="fillKab();render()"></select><select id="fk" onchange="render()"></select>
-   <select id="fs" onchange="render()"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select>
-   <input id="fq" placeholder="Cari kecamatan..." oninput="render()">
+   <select id="fp" onchange="fillKab();R('f')"></select><select id="fk" onchange="R('f')"></select>
+   <select id="fs" onchange="R('f')"><option value="">Semua status</option><option value="1">Sudah diisi</option><option value="0">Belum diisi</option></select>
+   <input id="fq" placeholder="Cari kecamatan..." oninput="R('f')">
    <button class="btn sm" onclick="$('imf').click()">Impor Excel/CSV</button><button class="btn sec sm" onclick="tpl()">Template</button><input id="imf" type="file" accept=".xlsx,.xls,.csv" hidden onchange="impor(this)"><button class="btn sm" onclick="exXlsx()">Unduh Excel</button><button class="btn sm" onclick="exPdf()">Unduh PDF</button>
    <button class="btn sec sm" id="bu" onclick="usersUI()">Kelola Akun</button>
    <button class="btn sec sm" id="bg" onclick="refreshAll(true)">Muat Ulang Data</button>
@@ -295,12 +296,22 @@ function fillKab(x='f',Ls){const p=$(x+'p').value;$(x+'k').innerHTML='<option va
 function filt(x='f',Ls){const p=$(x+'p').value,k=$(x+'k').value,s=$(x+'s').value,q=$(x+'q').value.toLowerCase();
  return (Ls||mine()).filter(v=>(!p||v.prov==p)&&(!k||v.kab==k)&&(s===''||((DB.lokasi[v.id]||[]).length>0)==(s=='1'))&&(!q||v.kec.toLowerCase().includes(q)))}
 const LK=x=>DB.lokasi[x.id]||[];
+const PS=10,PG={f:1,x:1};
+const paged=(f,x)=>{const n=Math.max(1,Math.ceil(f.length/PS));PG[x]=Math.min(Math.max(1,PG[x]),n);return f.slice((PG[x]-1)*PS,PG[x]*PS)};
+function R(x){PG[x]=1;x=='f'?render():pubRender()}
+function goPg(x,p){PG[x]=p;x=='f'?render():pubRender();const t=document.getElementById(x=='f'?'tb':'pb');if(t&&t.closest('.tw'))t.closest('.tw').scrollIntoView({behavior:'smooth',block:'start'})}
+function pager(len,tot,x){const n=Math.max(1,Math.ceil(len/PS)),p=PG[x],a=len?(p-1)*PS+1:0,b=Math.min(len,p*PS),pages=[...new Set([1,p-1,p,p+1,n])].filter(i=>i>=1&&i<=n).sort((u,v)=>u-v);
+ let h=`<span>Menampilkan ${a}–${b} dari ${len} kecamatan${len!=tot?` (total ${tot})`:''}</span>`;
+ if(n>1){h+=`<span class="pgr"><button class="btn sec sm" ${p<2?'disabled':''} onclick="goPg('${x}',${p-1})">‹ Sebelumnya</button>`;let l=0;
+  pages.forEach(i=>{if(i-l>1)h+='<span>…</span>';h+=`<button class="btn ${i==p?'':'sec'} sm" onclick="goPg('${x}',${i})">${i}</button>`;l=i});
+  h+=`<button class="btn sec sm" ${p>=n?'disabled':''} onclick="goPg('${x}',${p+1})">Berikutnya ›</button></span>`}
+ return h}
 function statsHTML(all,pub){const done=all.filter(x=>LK(x).length).length,tl=all.reduce((a,x)=>a+LK(x).length,0),tf=all.reduce((a,x)=>a+LK(x).reduce((b,r)=>b+(r.foto||[]).length,0),0);
  return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi','📍'],...(pub?[]:[[tf,'Foto data dukung','📷']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
 function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x);(rs.length?rs:[null]).forEach((r,j)=>{
  h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td>${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
-function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(f,true);$('cnt').textContent=`Menampilkan ${f.length} dari ${all.length} kecamatan`}
-function pubRender(){const f=filt('x',KEC);$('pst').innerHTML=statsHTML(KEC,true);$('pb').innerHTML=rowsHTML(f,false);$('pc').textContent=`Menampilkan ${f.length} dari ${KEC.length} kecamatan`}
+function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(paged(f,'f'),true);$('cnt').innerHTML=pager(f.length,all.length,'f')}
+function pubRender(){const f=filt('x',KEC);$('pst').innerHTML=statsHTML(KEC,true);$('pb').innerHTML=rowsHTML(paged(f,'x'),false);$('pc').innerHTML=pager(f.length,KEC.length,'x')}
 function pubInit(){$('hl').src=document.querySelector('.hero img').src;$('xp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(KEC.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
  $('pt').innerHTML=document.querySelector('#app thead').outerHTML.replace('<th rowspan="2">Foto</th>','').replace('<th rowspan="2"></th></tr>','</tr>')+'<tbody id="pb"></tbody>';pubRender()}
 async function gal(id,j){const r=DB.lokasi[id][j];await signPaths(r.foto.map(f=>f.path));$('md').innerHTML=`<div class="modal" onclick="closeM()"><div class="mb"><h3 style="margin-top:0">Foto data dukung — ${esc(KEC[id-1].kec)}, ${esc(r.pulau)}</h3>${r.foto.map(f=>f.t=='pdf'?`<a href="${esc(SIGN[f.path]||'#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:block;margin:8px 0">📄 ${esc(f.n)}</a>`:`<img src="${esc(SIGN[f.path]||'')}" style="max-width:100%;border-radius:8px;margin:6px 0;display:block">`).join('')}</div></div>`}
@@ -430,11 +441,16 @@ let USERS=[];
 async function callAdmin(body){const{data,error}=await sb.functions.invoke('admin-users',{body});
  if(error){let m=errTxt(error);try{const j=await error.context.json();if(j&&j.error)m=j.error}catch(e){}return{ok:false,error:m}}
  return data&&data.error?{ok:false,error:data.error}:{ok:true}}
+function roleUI(){const r=ME.role,hi=i=>['owner','admin','pic'][i]==r?'background:#ffd54a33;font-weight:700':'';
+ const T=[['Lihat data seluruh 299 kecamatan','✅','✅','— (hanya wilayahnya)'],['Isi / ubah data, unggah foto &amp; PDF','✅ semua wilayah','✅ semua wilayah','✅ wilayahnya'],['Impor Excel/CSV','✅ semua wilayah','✅ semua wilayah','✅ wilayahnya'],['Unduh Excel / PDF (beserta foto)','✅ semua wilayah','✅ semua wilayah','✅ wilayahnya'],['Kelola akun User/PIC','✅','✅','—'],['Kelola akun Admin &amp; Owner','✅','—','—'],['Lihat Log Aktivitas','✅','✅','—']];
+ $('md').innerHTML=`<div class="modal" onclick="closeM()"><div class="mb" onclick="event.stopPropagation()"><h3 style="margin-top:0">Hak Akses Peran</h3><small>Peran Anda: <b>${RL[r]}</b> (kolom disorot). Aturan ini ditegakkan oleh server, bukan hanya oleh tampilan.</small>
+ <div class="tw" style="margin-top:10px"><table><tr><th>Fitur</th><th class="c">Owner</th><th class="c">Admin</th><th class="c">User/PIC</th></tr>${T.map(t=>`<tr><td>${t[0]}</td>${[1,2,3].map(j=>`<td class="c" style="${hi(j-1)}">${t[j]}</td>`).join('')}</tr>`).join('')}</table></div>
+ <div style="text-align:right;margin-top:12px"><button class="btn sec" onclick="closeM()">Tutup</button></div></div></div>`}
 async function usersUI(){
  try{const{data,error}=await sb.from('profiles').select('*').order('role').order('username');if(error)throw error;USERS=data||[]}catch(e){alert('Gagal memuat daftar akun: '+errTxt(e));return}
  const canAll=ME.role=='owner';
  $('md').innerHTML=`<div class="modal"><div class="mb"><h3 style="margin-top:0">Kelola Akun</h3>
- <div class="tw" style="max-height:36vh"><table><tr><th>Pengguna</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th></th></tr>${USERS.map(x=>`<tr><td>${esc(x.username)}</td><td>${esc(x.nama)}</td><td>${RL[x.role]}</td><td>${x.role=='pic'?(x.prov?esc(x.prov)+' (semua kab/kota &amp; kecamatan)'+((x.kec||[]).length?' + no. '+esc(x.kec.join(', ')):''):esc((x.kec||[]).join(', '))):'Semua'}</td><td>${(canAll||x.role=='pic')&&x.id!=ME.id?`<button class="btn red sm" onclick="delU('${x.id}')">Hapus</button>`:''}</td></tr>`).join('')}</table></div>
+ <div class="tw" style="max-height:36vh"><table><tr><th>Pengguna</th><th>Nama</th><th>Peran</th><th>Wilayah</th><th></th></tr>${USERS.map(x=>`<tr><td>${esc(x.username)}</td><td>${esc(x.nama)}</td><td><span class="chip ${x.role=='owner'?'p':x.role=='admin'?'k':'d'}">${RL[x.role]}</span></td><td>${x.role=='pic'?(x.prov?esc(x.prov)+' (semua kab/kota &amp; kecamatan)'+((x.kec||[]).length?' + no. '+esc(x.kec.join(', ')):''):esc((x.kec||[]).join(', '))):'Semua'}</td><td>${(canAll||x.role=='pic')&&x.id!=ME.id?`<button class="btn red sm" onclick="delU('${x.id}')">Hapus</button>`:''}</td></tr>`).join('')}</table></div>
  <h4>Tambah / ubah akun</h4><div class="row3"><div><label>Peran</label><select id="nr" onchange="provPick()"><option value="pic">User/PIC</option>${canAll?'<option value="admin">Admin</option><option value="owner">Owner</option>':''}</select></div><div><label>Provinsi (khusus User/PIC)</label><select id="npv" onchange="provPick()"><option value="">— Pilih provinsi —</option>${[...new Set(KEC.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('')}</select></div><div><label>Kata sandi (min. 8 karakter)</label><input id="np" type="password" autocomplete="new-password" placeholder="Kosongkan jika tidak diubah"></div></div>
  <div class="row3"><div><label>Nama pengguna</label><input id="nu" placeholder="Otomatis = nama provinsi" oninput="this.dataset.a=''"></div><div><label>Nama lengkap</label><input id="nn" oninput="this.dataset.a=''"></div><div><label>No. kecamatan (opsional)</label><input id="nk" placeholder="mis. 1,2,3"></div></div>
  <div class="foot" id="pvi">Pilih provinsi: User/PIC otomatis mendapat seluruh kabupaten/kota dan kecamatan di provinsi tersebut, dan dapat login memakai nama provinsi. Untuk mengubah akun yang sudah ada, isi nama pengguna yang sama.</div>
