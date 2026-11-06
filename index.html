@@ -398,8 +398,15 @@ async function exXlsx(){
  }catch(e){alert('Gagal membuat Excel.\n\n'+errTxt(e))}finally{sy.textContent=old}
 }
 async function toData(s){if(!s)return null;if(s.startsWith('data:'))return s;return new Promise(ok=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);ok(c.toDataURL('image/jpeg',.8))};im.onerror=()=>ok(null);im.src=s})}
-async function exPdf(){
- log('Unduh PDF',flat().length+' baris');
+let PV='';
+function pdfPrev(b){PV&&URL.revokeObjectURL(PV);PV=URL.createObjectURL(b);const k=Math.round(b.size/1024);
+ $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:1100px"><h3 style="margin-top:0">Pratinjau PDF</h3><small>Ukuran ${k>1024?(k/1024).toFixed(1)+' MB':k+' KB'} · periksa dulu, lalu klik Unduh.</small>
+ <iframe src="${PV}#view=FitH" title="Pratinjau PDF" style="width:100%;height:68vh;border:0;border-radius:10px;background:#fff;margin-top:10px"></iframe>
+ <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px"><button class="btn sec" onclick="window.open(PV,'_blank')">Buka di tab baru</button><button class="btn sec" onclick="closePv()">Tutup</button><button class="btn" onclick="dlPv()">⬇ Unduh PDF</button></div></div></div>`}
+function dlPv(){const a=document.createElement('a');a.href=PV;a.download='Kebutuhan_Sarpras_Perbatasan.pdf';a.click();log('Unduh PDF',flat().length+' baris')}
+function closePv(){closeM();setTimeout(()=>{PV&&URL.revokeObjectURL(PV);PV=''},800)}
+async function exPdf(){const sy=$('sync'),old=sy.textContent;try{sy.textContent='Menyiapkan pratinjau PDF…';await exPdf0()}catch(e){alert('Gagal membuat PDF.\n\n'+errTxt(e))}finally{sy.textContent=old}}
+async function exPdf0(){
  await signPaths(filt().flatMap(k=>(DB.lokasi[k.id]||[]).flatMap(r=>(r.foto||[]).map(f=>f.path))));
  const d=new jspdf.jsPDF({orientation:'landscape'});d.setFontSize(13);d.text('Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan',14,14);
  d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Foto',rowSpan:2}],SUB],body:flat(),startY:20,styles:{fontSize:6.5},headStyles:{fillColor:[15,81,149]}});
@@ -410,11 +417,11 @@ async function exPdf(){
   for(const f of ims){const u=await toData(SIGN[f.path]||'');if(!u)continue;d.addImage(u,'JPEG',14+(i%3)*92,22+Math.floor(i/3)*70,88,64);i++}
   if(pd.length){d.setFontSize(9);d.text('Dokumen PDF terlampir pada halaman berikutnya: '+pd.map(f=>f.n).join('; '),14,200);pd.forEach(f=>PD.push({p:f.path,cap:`Lampiran: ${k.kec}, ${k.kab} - ${r.pulau||'-'} - ${f.n}`}))}
  }
- if(!PD.length){d.save('Kebutuhan_Sarpras_Perbatasan.pdf');return}
+ if(!PD.length)return pdfPrev(d.output('blob'));
  const{PDFDocument,StandardFonts,rgb}=PDFLib,out=await PDFDocument.load(d.output('arraybuffer')),ft=await out.embedFont(StandardFonts.Helvetica);
  for(const x of PD){try{const sp=await PDFDocument.load(await(await fetch(SIGN[x.p])).arrayBuffer(),{ignoreEncryption:true});
   (await out.copyPages(sp,sp.getPageIndices())).forEach((pg,ix)=>{out.addPage(pg);if(!ix)pg.drawText(x.cap.replace(/[^\x20-\x7E]/g,'-'),{x:14,y:pg.getHeight()-14,size:8,font:ft,color:rgb(.8,0,0)})})}catch(e){console.error(e)}}
- dlBlob(new Blob([await out.save()],{type:'application/pdf'}),'Kebutuhan_Sarpras_Perbatasan.pdf');
+ pdfPrev(new Blob([await out.save()],{type:'application/pdf'}));
 }
 
 /* ===== Impor dari Excel/CSV (menambah/memperbarui; tidak pernah menghapus) ===== */
