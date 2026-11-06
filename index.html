@@ -143,6 +143,13 @@ header{background:linear-gradient(155deg,#0b3a78,#1470b8)}
 .ht{flex:1 1 520px}
 .dz{border:2px dashed var(--line);border-radius:12px;padding:14px;text-align:center;cursor:pointer;margin-top:6px;font-size:14px}.dz.on{border-color:var(--pri);background:#2f7de11f}.th .pdf{display:inline-block;padding:10px 30px 10px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top}
 .foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}.pgr{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.btn:disabled{opacity:.45;cursor:not-allowed}
+tbody td{vertical-align:top}
+td.n{min-width:270px;max-width:340px;font-size:14px;line-height:1.5}td.pl{white-space:normal;min-width:150px;max-width:220px}
+.it{display:flex;gap:8px;margin:0 0 7px}.it:last-child{margin-bottom:0}
+.it i{flex:0 0 22px;height:22px;border-radius:50%;background:#ffffff26;font-style:normal;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.it span{flex:1;min-width:0;overflow-wrap:anywhere}
+td.n details{margin-top:7px}td.n summary{cursor:pointer;color:#ffd54a;font-size:13px;font-weight:600}td.n details[open] summary{margin-bottom:7px}
+.em{opacity:.45}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -308,8 +315,13 @@ function pager(len,tot,x){const n=Math.max(1,Math.ceil(len/PS)),p=PG[x],a=len?(p
  return h}
 function statsHTML(all,pub){const done=all.filter(x=>LK(x).length).length,tl=all.reduce((a,x)=>a+LK(x).length,0),tf=all.reduce((a,x)=>a+LK(x).reduce((b,r)=>b+(r.foto||[]).length,0),0);
  return [[all.length,'Kecamatan','🏝️'],[done,'Sudah diisi','✅'],[all.length-done,'Belum diisi','⏳'],[tl,'Total lokasi','📍'],...(pub?[]:[[tf,'Foto data dukung','📷']]),[all.filter(x=>x.pk=='PKSN').length,'PKSN','🚩'],[all.filter(x=>x.pk=='KPP').length,'KPP','🛡️']].map(a=>`<div class="stat"><i>${a[2]}</i><div><b>${a[0]}</b><span>${a[1]}</span></div></div>`).join('')}
+/* Sel kebutuhan: pecah "1. ... 2. ..." menjadi butir terpisah; tampilkan 2 butir, sisanya dilipat */
+function cellH(t){t=String(t||'').trim();if(!t)return'<span class="em">–</span>';
+ const parts=t.includes('\n')?t.split(/\n+/):/^1\s*[.)]/.test(t)?t.split(/\s+(?=\d{1,2}\s*[.)]\s*\S)/):[t];
+ const it=parts.map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(\d{1,2})\s*[.)]\s*([\s\S]*)$/);return `<div class="it"><i>${m?m[1]:'•'}</i><span>${esc(m?m[2]:x)}</span></div>`}),K=2;
+ return it.length>K?it.slice(0,K).join('')+`<details><summary>+${it.length-K} butir lainnya</summary>${it.slice(K).join('')}</details>`:it.join('')}
 function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x);(rs.length?rs:[null]).forEach((r,j)=>{
- h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td>${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?esc(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
+ h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td class="pl">${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?cellH(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
 function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(paged(f,'f'),true);$('cnt').innerHTML=pager(f.length,all.length,'f')}
 function pubRender(){const f=filt('x',KEC);$('pst').innerHTML=statsHTML(KEC,true);$('pb').innerHTML=rowsHTML(paged(f,'x'),false);$('pc').innerHTML=pager(f.length,KEC.length,'x')}
 function pubInit(){$('hl').src=document.querySelector('.hero img').src;$('xp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(KEC.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
