@@ -150,6 +150,7 @@ td.n{min-width:270px;max-width:340px;font-size:14px;line-height:1.5}td.pl{white-
 .it span{flex:1;min-width:0;overflow-wrap:anywhere}
 td.n details{margin-top:7px}td.n summary{cursor:pointer;color:#ffd54a;font-size:13px;font-weight:600}td.n details[open] summary{margin-bottom:7px}
 .em{opacity:.45}
+tbody tr.g1>td{border-top:2px solid #ffffff40}
 </style></head><body>
 
 <section id="login"><div class="split">
@@ -318,10 +319,14 @@ function statsHTML(all,pub){const done=all.filter(x=>LK(x).length).length,tl=all
 /* Sel kebutuhan: pecah "1. ... 2. ..." menjadi butir terpisah; tampilkan 2 butir, sisanya dilipat */
 function cellH(t){t=String(t||'').trim();if(!t)return'<span class="em">–</span>';
  const parts=t.includes('\n')?t.split(/\n+/):/^1\s*[.)]/.test(t)?t.split(/\s+(?=\d{1,2}\s*[.)]\s*\S)/):[t];
- const it=parts.map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(\d{1,2})\s*[.)]\s*([\s\S]*)$/);return `<div class="it"><i>${m?m[1]:'•'}</i><span>${esc(m?m[2]:x)}</span></div>`}),K=2;
+ const it=parts.map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.match(/^(\d{1,2})\s*[.)]\s*([\s\S]*)$/);return `<div class="it"><i>${m?m[1]:'•'}</i><span>${esc((m?m[2]:x).replace(/^(?:[•·▪●*]\s*|[-–]\s+)/,''))}</span></div>`}),K=2;
  return it.length>K?it.slice(0,K).join('')+`<details><summary>+${it.length-K} butir lainnya</summary>${it.slice(K).join('')}</details>`:it.join('')}
-function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x);(rs.length?rs:[null]).forEach((r,j)=>{
- h+=`<tr><td>${x.id}</td><td>${esc(x.prov)}</td><td>${esc(x.kab)}</td><td><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td><td class="pl">${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?cellH(r[k[0]]):''}</td>`).join('')}${edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:''}<td><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>${edit?`<td><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''}</tr>`})});return h}
+function rowsHTML(f,edit){let h='';f.forEach(x=>{const rs=LK(x),L=rs.length?rs:[null],n=L.length,sp=n>1?` rowspan="${n}"`:'';
+ L.forEach((r,j)=>{
+  h+=`<tr${j?'':' class="g1"'}>`+(j?'':`<td${sp}>${x.id}</td><td${sp}>${esc(x.prov)}</td><td${sp}>${esc(x.kab)}</td><td${sp}><b>${esc(x.kec)}</b><span class="chip ${x.pk=='PKSN'?'p':'k'}">${x.pk}</span><span class="chip ${x.dl=='Laut'?'l':'d'}">${x.dl}</span></td>`)+
+  `<td class="pl">${r&&r.pulau?esc(r.pulau):'-'}</td>${KB.map(k=>`<td class="n">${r?cellH(r[k[0]]):''}</td>`).join('')}`+
+  (edit?`<td>${r&&r.foto&&r.foto.length?`<button class="btn sec sm" onclick="gal(${x.id},${j})">📷 ${r.foto.length}</button>`:'-'}</td>`:'')+
+  (j?'':`<td${sp}><span class="tag ${rs.length?'ok':'no'}">${rs.length?'Terisi':'Belum'}</span></td>`+(edit?`<td${sp}><button class="btn sm" onclick="edit(${x.id})">${rs.length?'Ubah':'Isi'} Data</button></td>`:''))+'</tr>'})});return h}
 function render(){const all=mine(),f=filt();$('stats').innerHTML=statsHTML(all);const dn=all.filter(x=>LK(x).length).length,pc=all.length?Math.round(dn*1000/all.length)/10:0;$('pp').textContent=pc+'%';$('rg').style.setProperty('--p',pc);$('pn').textContent=dn+' / '+all.length;$('tb').innerHTML=rowsHTML(paged(f,'f'),true);$('cnt').innerHTML=pager(f.length,all.length,'f')}
 function pubRender(){const f=filt('x',KEC);$('pst').innerHTML=statsHTML(KEC,true);$('pb').innerHTML=rowsHTML(paged(f,'x'),false);$('pc').innerHTML=pager(f.length,KEC.length,'x')}
 function pubInit(){$('hl').src=document.querySelector('.hero img').src;$('xp').innerHTML='<option value="">Semua provinsi</option>'+[...new Set(KEC.map(k=>k.prov))].map(p=>`<option>${esc(p)}</option>`).join('');
@@ -390,7 +395,7 @@ async function exXlsx(){
    fr++}
   ws.addRow([...H1,'KEBUTUHAN SARANA PRASARANA DASAR',...Array(7).fill(''),'Foto / PDF']);ws.addRow([...Array(5).fill(''),...SUB,'']);
   ws.mergeCells(1,6,1,13);[1,2,3,4,5,14].forEach(c=>ws.mergeCells(1,c,2,c));
-  for(const k of F){const rs=DB.lokasi[k.id]||[];(rs.length?rs:[{}]).forEach(r=>{const n=(r.foto||[]).length,row=ws.addRow([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),n||'']),L=link[k.id+'|'+(r.pulau||'')];if(n&&L)row.getCell(14).value={text:n+' (lihat)',hyperlink:`#'Foto Data Dukung'!A${L}`}})}
+  for(const k of F){const rs=DB.lokasi[k.id]||[],st=ws.rowCount+1;(rs.length?rs:[{}]).forEach(r=>{const n=(r.foto||[]).length,row=ws.addRow([k.id,k.prov,k.kab,k.kec,r.pulau||'',...KB.map(b=>r[b[0]]||''),n||'']),L=link[k.id+'|'+(r.pulau||'')];if(n&&L)row.getCell(14).value={text:n+' (lihat)',hyperlink:`#'Foto Data Dukung'!A${L}`}});if(rs.length>1)[1,2,3,4].forEach(c=>ws.mergeCells(st,c,st+rs.length-1,c))}
   [5,18,20,22,22,...SUB.map(()=>26),12].forEach((w,i)=>ws.getColumn(i+1).width=w);
   ws.eachRow((r,n)=>{r.alignment={vertical:n<3?'middle':'top',wrapText:true,...(n<3?{horizontal:'center'}:{})};if(n<3)r.eachCell(c=>{c.font={bold:true};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDCE9F7'}}})});
   ws.views=[{state:'frozen',ySplit:2}];
@@ -398,6 +403,7 @@ async function exXlsx(){
  }catch(e){alert('Gagal membuat Excel.\n\n'+errTxt(e))}finally{sy.textContent=old}
 }
 async function toData(s){if(!s)return null;if(s.startsWith('data:'))return s;return new Promise(ok=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const c=document.createElement('canvas');c.width=im.width;c.height=im.height;c.getContext('2d').drawImage(im,0,0);ok(c.toDataURL('image/jpeg',.8))};im.onerror=()=>ok(null);im.src=s})}
+function flatG(){const o=[];filt().forEach(k=>{const rs=DB.lokasi[k.id]||[],L=rs.length?rs:[{}],n=L.length;L.forEach((r,j)=>{const c=[r.pulau||'',...KB.map(b=>r[b[0]]||''),(r.foto||[]).length||''];o.push(j?c:[...[k.id,k.prov,k.kab,k.kec].map(v=>({content:String(v),rowSpan:n})),...c])})});return o}
 let PV='';
 function pdfPrev(b){PV&&URL.revokeObjectURL(PV);PV=URL.createObjectURL(b);const k=Math.round(b.size/1024);
  $('md').innerHTML=`<div class="modal"><div class="mb" style="max-width:1100px"><h3 style="margin-top:0">Pratinjau PDF</h3><small>Ukuran ${k>1024?(k/1024).toFixed(1)+' MB':k+' KB'} · periksa dulu, lalu klik Unduh.</small>
@@ -409,7 +415,7 @@ async function exPdf(){const sy=$('sync'),old=sy.textContent;try{sy.textContent=
 async function exPdf0(){
  await signPaths(filt().flatMap(k=>(DB.lokasi[k.id]||[]).flatMap(r=>(r.foto||[]).map(f=>f.path))));
  const d=new jspdf.jsPDF({orientation:'landscape'});d.setFontSize(13);d.text('Kebutuhan Sarana Prasarana Layanan Dasar di Kawasan Perbatasan',14,14);
- d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Foto',rowSpan:2}],SUB],body:flat(),startY:20,styles:{fontSize:6.5},headStyles:{fillColor:[15,81,149]}});
+ d.autoTable({head:[[...H1.map(t=>({content:t,rowSpan:2})),{content:'KEBUTUHAN SARANA PRASARANA DASAR',colSpan:8,styles:{halign:'center'}},{content:'Foto',rowSpan:2}],SUB],body:flatG(),startY:20,rowPageBreak:'avoid',styles:{fontSize:6.5,valign:'top'},headStyles:{fillColor:[15,81,149]}});
  const PD=[];
  for(const k of filt())for(const r of (DB.lokasi[k.id]||[]).filter(r=>(r.foto||[]).length)){
   const ims=r.foto.filter(f=>f.t!='pdf'),pd=r.foto.filter(f=>f.t=='pdf');
